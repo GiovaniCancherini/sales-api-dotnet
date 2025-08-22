@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<ProjectReference Include="..\SalesApi.Domain\SalesApi.Domain.csproj" />
+		<ProjectReference Include="..\SalesApi.Application\SalesApi.Application.csproj" />
+		<ProjectReference Include="..\SalesApi.ORM\SalesApi.ORM.csproj" />
+		<ProjectReference Include="..\SalesApi.Common\SalesApi.Common.csproj" />
+	</ItemGroup>
+
+</Project>
