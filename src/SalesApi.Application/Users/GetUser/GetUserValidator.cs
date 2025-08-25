@@ -5,7 +5,7 @@ namespace SalesApi.Application.Users.GetUser;
 /// <summary>
 /// Validator for GetUserCommand
 /// </summary>
-public class GetUserValidator : AbstractValidator<GetUserCommand>
+public class GetUserValidator : AbstractValidator<GetUserQuery>
 {
     /// <summary>
     /// Initializes validation rules for GetUserCommand

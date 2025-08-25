@@ -8,7 +8,7 @@ namespace SalesApi.Application.Sales.GetBySaleId;
 /// <summary>
 /// Handler for processing GetBySaleIdCommand requests
 /// </summary>
-public class GetBySaleIdHandler : IRequestHandler<GetBySaleIdCommand, GetBySaleIdResult>
+public class GetBySaleIdHandler : IRequestHandler<GetBySaleIdQuery, GetBySaleIdResult>
 {
     private readonly ISaleRepository _saleRepository;
     private readonly IMapper _mapper;
@@ -33,7 +33,7 @@ public class GetBySaleIdHandler : IRequestHandler<GetBySaleIdCommand, GetBySaleI
     /// <param name="request">The GetBySaleId command</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The sale details if found</returns>
-    public async Task<GetBySaleIdResult> Handle(GetBySaleIdCommand request, CancellationToken cancellationToken)
+    public async Task<GetBySaleIdResult> Handle(GetBySaleIdQuery request, CancellationToken cancellationToken)
     {
         var validator = new GetBySaleIdValidator();
         var validationResult = await validator.ValidateAsync(request, cancellationToken);

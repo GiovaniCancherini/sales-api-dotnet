@@ -5,7 +5,7 @@ namespace SalesApi.Application.Sales.GetBySaleId;
 /// <summary>
 /// Command for retrieving a sale by their ID
 /// </summary>
-public record GetBySaleIdCommand : IRequest<GetBySaleIdResult>
+public record GetBySaleIdQuery : IRequest<GetBySaleIdResult>
 {
     /// <summary>
     /// The unique identifier of the sale to retrieve
@@ -16,7 +16,7 @@ public record GetBySaleIdCommand : IRequest<GetBySaleIdResult>
     /// Initializes a new instance of GetBySaleIdCommand
     /// </summary>
     /// <param name="id">The ID of the sale to retrieve</param>
-    public GetBySaleIdCommand(Guid id)
+    public GetBySaleIdQuery(Guid id)
     {
         Id = id;
     }

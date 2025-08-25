@@ -5,7 +5,7 @@ namespace SalesApi.Application.Sales.GetBySaleId;
 /// <summary>
 /// Validator for GetBySaleIdCommand
 /// </summary>
-public class GetBySaleIdValidator : AbstractValidator<GetBySaleIdCommand>
+public class GetBySaleIdValidator : AbstractValidator<GetBySaleIdQuery>
 {
     /// <summary>
     /// Initializes validation rules for GetBySaleIdCommand
