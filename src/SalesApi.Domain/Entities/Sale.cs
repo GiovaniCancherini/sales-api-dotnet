@@ -1,4 +1,5 @@
 ﻿using SalesApi.Domain.Common;
+using SalesApi.Domain.Enums;
 
 namespace SalesApi.Domain.Entities
 {
@@ -10,7 +11,7 @@ namespace SalesApi.Domain.Entities
         public string CustomerName { get; private set; }
         public string BranchId { get; private set; }
         public string BranchName { get; private set; }
-        public bool IsCanceled { get; private set; }
+        public SaleStatus Status { get; private set; }
         public decimal TotalAmount { get; set; }
 
         public ICollection<SaleItem> Items { get; set; } = new List<SaleItem>();
@@ -26,7 +27,7 @@ namespace SalesApi.Domain.Entities
             CustomerName = customerName;
             BranchId = branchId;
             BranchName = branchName;
-            IsCanceled = false;
+            Status = SaleStatus.Openned;
             TotalAmount = 0;
         }
 
@@ -45,11 +46,7 @@ namespace SalesApi.Domain.Entities
 
         public void Cancel()
         {
-            if (IsCanceled)
-            {
-                return;
-            }
-            IsCanceled = true;
+            Status = SaleStatus.Cancelled;
         }
 
         private void RecalculateTotal()
