@@ -18,8 +18,6 @@
   <ItemGroup>
     <Folder Include="Sales\GetAllSale\" />
     <Folder Include="Sales\UpdateSale\" />
-    <Folder Include="Sales\GetBySaleId\" />
-    <Folder Include="Sales\DeleteSale\" />
   </ItemGroup>
 
 </Project>
