@@ -1,5 +1,4 @@
-﻿using SalesApi.Common.Security;
-using SalesApi.Domain.Common;
+﻿using SalesApi.Domain.Common;
 
 namespace SalesApi.Domain.Entities
 {
