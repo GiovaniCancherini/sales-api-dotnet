@@ -1,5 +1,3 @@
-using System;
-
 namespace SalesApi.Common.Security;
 
 /// <summary>
