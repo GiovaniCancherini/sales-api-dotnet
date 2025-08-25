@@ -7,7 +7,7 @@
 /// This response contains the unique identifier of the newly created sale,
 /// which can be used for subsequent operations or reference.
 /// </remarks>
-public class CreateSaleResult
+public class AddSaleItemResult
 {
     /// <summary>
     /// Gets or sets the unique identifier of the newly created sale.

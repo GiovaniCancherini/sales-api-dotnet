@@ -1,4 +1,5 @@
-﻿using SalesApi.Domain.Enums;
+﻿using SalesApi.Application.SaleItems.AddSaleItem;
+using SalesApi.Domain.Enums;
 using FluentValidation;
 
 namespace SalesApi.Application.Sales.CreateSale;
@@ -20,7 +21,7 @@ public class CreateSaleCommandValidator : AbstractValidator<CreateSaleCommand>
     /// - BranchId: Required.
     /// - Status: Must not be set to Unknown.
     /// - TotalAmount: Must be greater than zero.
-    /// - Items: Must not be empty.
+    /// - Items: Must not be empty, and each item must be valid (using SaleItemCommandValidator).
     /// </remarks>
     public CreateSaleCommandValidator()
     {
@@ -46,7 +47,11 @@ public class CreateSaleCommandValidator : AbstractValidator<CreateSaleCommand>
         RuleFor(sale => sale.TotalAmount)
             .GreaterThan(0).WithMessage("O valor total da venda deve ser maior que zero.");
 
+        // Regra para validar a lista de itens e cada item individualmente
         RuleFor(sale => sale.Items)
             .NotEmpty().WithMessage("A venda deve conter pelo menos um item.");
+
+        RuleForEach(sale => sale.Items)
+            .SetValidator(new AddSaleItemCommandValidator());
     }
 }
