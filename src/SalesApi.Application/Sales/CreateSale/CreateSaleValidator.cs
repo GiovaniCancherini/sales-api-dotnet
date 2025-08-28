@@ -50,8 +50,5 @@ public class CreateSaleCommandValidator : AbstractValidator<CreateSaleCommand>
         // Regra para validar a lista de itens e cada item individualmente
         RuleFor(sale => sale.Items)
             .NotEmpty().WithMessage("A venda deve conter pelo menos um item.");
-
-        RuleForEach(sale => sale.Items)
-            .SetValidator(new AddSaleItemCommandValidator());
     }
 }

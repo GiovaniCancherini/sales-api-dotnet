@@ -19,7 +19,7 @@ namespace SalesApi.Application.Sales.CreateSale;
 /// <see cref="AbstractValidator{T}"/> to ensure that the fields are correctly 
 /// populated and follow the required rules.
 /// </remarks>
-public class CreateSaleCommand : IRequest<AddSaleItemResult>
+public class CreateSaleCommand : IRequest<CreateSaleResult>
 {
     /// <summary>
     /// Gets or sets the sale number of the sale to be created.

@@ -6,9 +6,9 @@ using SalesApi.Domain.Repositories;
 namespace SalesApi.Application.SaleItems.GetByIdSale;
 
 /// <summary>
-/// Handler for processing GetBySaleItemIdCommand requests
+/// Handler for processing GetByIdSaleIdCommand requests
 /// </summary>
-public class GetByIdSaleHandler : IRequestHandler<GetByIdSaleIdQuery, GetByIdSaleResult>
+public class GetByIdSaleHandler : IRequestHandler<GetByIdSaleQuery, GetByIdSaleResult>
 {
     private readonly ISaleItemRepository _saleItemRepository;
     private readonly IMapper _mapper;
@@ -18,7 +18,7 @@ public class GetByIdSaleHandler : IRequestHandler<GetByIdSaleIdQuery, GetByIdSal
     /// </summary>
     /// <param name="saleItemRepository">The sale repository</param>
     /// <param name="mapper">The AutoMapper instance</param>
-    /// <param name="validator">The validator for GetBySaleItemIdCommand</param>
+    /// <param name="validator">The validator for GetByIdSaleIdCommand</param>
     public GetByIdSaleHandler(
         ISaleItemRepository saleItemRepository,
         IMapper mapper)
@@ -28,12 +28,12 @@ public class GetByIdSaleHandler : IRequestHandler<GetByIdSaleIdQuery, GetByIdSal
     }
 
     /// <summary>
-    /// Handles the GetBySaleItemIdCommand request
+    /// Handles the GetByIdSaleIdCommand request
     /// </summary>
-    /// <param name="request">The GetBySaleItemId command</param>
+    /// <param name="request">The GetByIdSaleId command</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The sale item details if found</returns>
-    public async Task<GetByIdSaleResult> Handle(GetByIdSaleIdQuery request, CancellationToken cancellationToken)
+    public async Task<GetByIdSaleResult> Handle(GetByIdSaleQuery request, CancellationToken cancellationToken)
     {
         var validator = new GetByIdSaleValidator();
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
@@ -43,10 +43,10 @@ public class GetByIdSaleHandler : IRequestHandler<GetByIdSaleIdQuery, GetByIdSal
             throw new ValidationException(validationResult.Errors);
         }
 
-        var saleItem = await _saleItemRepository.GetAllByIdSaleAsync(request.IdSale, cancellationToken);
+        var saleItem = await _saleItemRepository.GetAllByIdSaleAsync(request.SaleId, cancellationToken);
         if (saleItem == null)
         {
-            throw new KeyNotFoundException($"SaleItem with ID Sale {request.IdSale} not found");
+            throw new KeyNotFoundException($"SaleItem with ID Sale {request.SaleId} not found");
         }
 
         return _mapper.Map<GetByIdSaleResult>(saleItem);
