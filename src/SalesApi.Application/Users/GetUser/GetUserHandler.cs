@@ -35,7 +35,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, GetUserResult>
     /// <returns>The user details if found</returns>
     public async Task<GetUserResult> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
-        var validator = new GetUserValidator();
+        var validator = new GetAllUserValidator();
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
 
         if (!validationResult.IsValid)

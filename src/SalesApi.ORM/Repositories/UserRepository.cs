@@ -57,6 +57,16 @@ public class UserRepository : IUserRepository
     }
 
     /// <summary>
+    /// Retrieves all users
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The user if found, null otherwise</returns>
+    public async Task<List<User>?> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Users.ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Deletes a user from the database
     /// </summary>
     /// <param name="id">The unique identifier of the user to delete</param>
@@ -69,6 +79,23 @@ public class UserRepository : IUserRepository
             return false;
 
         _context.Users.Remove(user);
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Updates a user from the database
+    /// </summary>
+    /// <param name="user">The user to update</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if the user was deleted, false if not found</returns>
+    public async Task<bool> UpdateAsync(User user, CancellationToken cancellationToken = default)
+    {
+        var obtainedUser = await GetByIdAsync(user.Id, cancellationToken);
+        if (obtainedUser == null)
+            return false;
+
+        _context.Users.Update(user);
         await _context.SaveChangesAsync(cancellationToken);
         return true;
     }
