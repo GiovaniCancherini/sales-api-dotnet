@@ -5,7 +5,6 @@
 /// </summary>
 public class ListUsersRequest
 {
-    // Se quiser filtros no futuro, pode incluir aqui:
-    // public string? Name { get; set; }
-    // public UserStatus? Status { get; set; }
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
 }

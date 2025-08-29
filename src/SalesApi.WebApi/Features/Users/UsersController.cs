@@ -141,25 +141,23 @@ public class UsersController : BaseController
         [FromQuery] int pageSize = 10, 
         CancellationToken cancellationToken = default)
     {
-        var request = new ListUsersRequest();
+        var request = new ListUsersRequest { PageNumber = pageNumber, PageSize = pageSize };
         var validator = new ListUsersRequestValidator();
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
 
         if (!validationResult.IsValid)
             return BadRequest(validationResult.Errors);
 
-        // Executa query pelo MediatR
-        var query = _mapper.Map<GetAllUserQuery>(request);
-        var users = await _mediator.Send(query, cancellationToken);
+        var command = _mapper.Map<GetAllUserQuery>(request);
+        var users = await _mediator.Send(command, cancellationToken);
 
         // Aplica paginação
-        var paginatedUsers = await PaginatedList<User>.CreateAsync((IQueryable<User>)users.AsQueryable(), pageNumber, pageSize);
-
-        // Mapeia User -> DTO
+        var userEntities = _mapper.Map<List<User>>(users);
+        var paginatedUsers = await PaginatedList<GetAllUserResult>.CreateAsync(users.AsQueryable(), pageNumber, pageSize);
         var dtos = _mapper.Map<List<ListUsersResponse>>(paginatedUsers);
 
         // Retorna PaginatedResponse
-        var response = new PaginatedResponse<ListUsersResponse>
+        var paginatedResponse = new PaginatedResponse<ListUsersResponse>
         {
             Data = dtos,
             CurrentPage = paginatedUsers.CurrentPage,
@@ -169,7 +167,7 @@ public class UsersController : BaseController
             Message = "List of users retrieved successfully"
         };
 
-        return Ok(response);
+        return Ok(paginatedResponse);
     }
 
     /// <summary>
@@ -181,6 +179,7 @@ public class UsersController : BaseController
     [HttpPut]
     [ProducesResponseType(typeof(ApiResponseWithData<UpdateUserResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
     {
         var validator = new UpdateUserRequestValidator();

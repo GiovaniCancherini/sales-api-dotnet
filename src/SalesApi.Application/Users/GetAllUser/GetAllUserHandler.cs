@@ -18,7 +18,6 @@ public class GetAllUserHandler : IRequestHandler<GetAllUserQuery, List<GetAllUse
     /// </summary>
     /// <param name="userRepository">The user repository</param>
     /// <param name="mapper">The AutoMapper instance</param>
-    /// <param name="validator">The validator for GetAllUserCommand</param>
     public GetAllUserHandler(
         IUserRepository userRepository,
         IMapper mapper)
