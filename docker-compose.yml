@@ -27,7 +27,7 @@ services:
       POSTGRES_USER: developer
       POSTGRES_PASSWORD: ***REMOVED***
     ports:
-      - "5432"
+      - "5432:5432"
     restart: unless-stopped
 
   salesapi.nosql:
