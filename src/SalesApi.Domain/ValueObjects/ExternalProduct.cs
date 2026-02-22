@@ -25,6 +25,8 @@ namespace SalesApi.Domain.ValueObjects
         /// Gets the product SKU.
         /// </summary>
         public string SKU { get; }
+        
+        private ExternalProduct() { } // Required by EF Core
 
         public ExternalProduct(Guid id, string name, string sku)
         {

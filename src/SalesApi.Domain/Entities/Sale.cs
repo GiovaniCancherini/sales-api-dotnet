@@ -2,6 +2,7 @@ using SalesApi.Common.Security;
 using SalesApi.Common.Validation;
 using SalesApi.Domain.Common;
 using SalesApi.Domain.Enums;
+using SalesApi.Domain.Validation;
 using SalesApi.Domain.ValueObjects;
 
 namespace SalesApi.Domain.Entities;
@@ -60,7 +61,7 @@ public class Sale : BaseEntity
     /// </summary>
     public SaleStatus Status { get; private set; }
 
-    private Sale() { } // EF
+    private Sale() { } // Required by EF Core
 
     public Sale(
         string saleNumber,
@@ -73,8 +74,6 @@ public class Sale : BaseEntity
         Branch = branch ?? throw new ArgumentNullException(nameof(branch));
         Date = DateTimeOffset.UtcNow;
         Status = SaleStatus.Active;
-
-        Validate();
     }
 
     public void AddItem(SaleItem item)
@@ -103,22 +102,15 @@ public class Sale : BaseEntity
         TotalAmount = _items.Sum(i => i.TotalAmount);
     }
 
-    private void Validate()
+    public ValidationResultDetail Validate()
     {
-        if (string.IsNullOrWhiteSpace(SaleNumber))
+        var validator = new SaleValidator();
+        var result = validator.Validate(this);
+        return new ValidationResultDetail
         {
-            throw new ArgumentException("Sale number is required.");
-        }
-
-        if (Customer is null)
-        {
-            throw new ArgumentException("Customer is required.");
-        }
-
-        if (Branch is null)
-        {
-            throw new ArgumentException("Branch is required.");
-        }
+            IsValid = result.IsValid,
+            Errors = result.Errors.Select(o => (ValidationErrorDetail)o)
+        };
     }
 
 }

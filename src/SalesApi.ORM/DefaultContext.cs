@@ -9,6 +9,7 @@ namespace SalesApi.ORM;
 public class DefaultContext : DbContext
 {
     public DbSet<User> Users { get; set; }
+    public DbSet<Sale> Sales { get; set; } = null!;
 
     public DefaultContext(DbContextOptions<DefaultContext> options) : base(options)
     {

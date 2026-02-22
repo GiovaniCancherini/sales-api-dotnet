@@ -4,6 +4,7 @@ using SalesApi.Domain.Common;
 using SalesApi.Domain.Enums;
 using SalesApi.Domain.Validation;
 using SalesApi.Domain.ValueObjects;
+using FluentValidation;
 
 namespace SalesApi.Domain.Entities;
 
@@ -54,7 +55,7 @@ public class SaleItem : BaseEntity
     /// </summary>
     public bool IsCancelled { get; private set; }
 
-    private SaleItem() { } // EF
+    private SaleItem() { } // Required by EF Core
 
     public SaleItem(
         ExternalProduct product,
@@ -69,7 +70,6 @@ public class SaleItem : BaseEntity
         Discount = discount;
         IsCancelled = false;
 
-        Validate();
         RecalculateTotal();
     }
 
@@ -81,7 +81,6 @@ public class SaleItem : BaseEntity
         }
 
         Discount = discount;
-        Validate();
         RecalculateTotal();
     }
 
@@ -108,27 +107,15 @@ public class SaleItem : BaseEntity
         TotalAmount = subtotal - Discount;
     }
 
-    private void Validate()
+    public ValidationResultDetail Validate()
     {
-        if (Product is null)
+        var validator = new SaleItemValidator();
+        var result = validator.Validate(this);
+        return new ValidationResultDetail
         {
-            throw new ArgumentException("Product is required.");
-        }
-
-        if (Quantity <= 0)
-        {
-            throw new ArgumentException("Quantity must be greater than zero.");
-        }
-
-        if (UnitPrice <= 0)
-        {
-            throw new ArgumentException("Unit price must be greater than zero.");
-        }
-
-        if (Discount < 0)
-        {
-            throw new ArgumentException("Discount cannot be negative.");
-        }
+            IsValid = result.IsValid,
+            Errors = result.Errors.Select(o => (ValidationErrorDetail)o)
+        };
     }
 
 }

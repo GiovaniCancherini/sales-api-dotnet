@@ -22,6 +22,8 @@ namespace SalesApi.Domain.ValueObjects
         /// </summary>
         public string Name { get; }
 
+        private ExternalCustomer() { } // Required by EF Core
+
         public ExternalCustomer(Guid id, string name)
         {
             if (id == Guid.Empty)
