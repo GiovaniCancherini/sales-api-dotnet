@@ -3,6 +3,7 @@ using SalesApi.Common.Validation;
 using SalesApi.Domain.Common;
 using SalesApi.Domain.Enums;
 using SalesApi.Domain.Validation;
+using SalesApi.Domain.ValueObjects;
 
 namespace SalesApi.Domain.Entities;
 
@@ -20,10 +21,9 @@ public class SaleItem : BaseEntity
     public Guid Id { get; private set; }
 
     /// <summary>
-    /// Gets the external identity reference of the product.
-    /// This is not the full Product aggregate.
+    /// Snapshot reference of the product at the time of sale.
     /// </summary>
-    public Guid ProductId { get; private set; }
+    public ExternalProduct Product { get; private set; } = null!;
 
     /// <summary>
     /// Gets the quantity of the product in the sale.
@@ -57,13 +57,13 @@ public class SaleItem : BaseEntity
     private SaleItem() { } // EF
 
     public SaleItem(
-        Guid productId,
+        ExternalProduct product,
         int quantity,
         decimal unitPrice,
         decimal discount = 0)
     {
         Id = Guid.NewGuid();
-        ProductId = productId;
+        Product = product ?? throw new ArgumentNullException(nameof(product));
         Quantity = quantity;
         UnitPrice = unitPrice;
         Discount = discount;
@@ -76,7 +76,9 @@ public class SaleItem : BaseEntity
     public void ApplyDiscount(decimal discount)
     {
         if (discount < 0)
+        {
             throw new ArgumentException("Discount cannot be negative.");
+        }
 
         Discount = discount;
         Validate();
@@ -86,7 +88,9 @@ public class SaleItem : BaseEntity
     public void Cancel()
     {
         if (IsCancelled)
+        {
             throw new InvalidOperationException("Item already cancelled.");
+        }
 
         IsCancelled = true;
         TotalAmount = 0;
@@ -97,23 +101,34 @@ public class SaleItem : BaseEntity
         var subtotal = Quantity * UnitPrice;
 
         if (Discount > subtotal)
+        {
             throw new InvalidOperationException("Discount cannot exceed subtotal.");
+        }
 
         TotalAmount = subtotal - Discount;
     }
 
     private void Validate()
     {
-        if (ProductId == Guid.Empty)
+        if (Product is null)
+        {
             throw new ArgumentException("Product is required.");
+        }
 
         if (Quantity <= 0)
+        {
             throw new ArgumentException("Quantity must be greater than zero.");
+        }
 
         if (UnitPrice <= 0)
+        {
             throw new ArgumentException("Unit price must be greater than zero.");
+        }
 
         if (Discount < 0)
+        {
             throw new ArgumentException("Discount cannot be negative.");
+        }
     }
+
 }

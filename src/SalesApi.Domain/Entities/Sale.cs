@@ -2,7 +2,7 @@ using SalesApi.Common.Security;
 using SalesApi.Common.Validation;
 using SalesApi.Domain.Common;
 using SalesApi.Domain.Enums;
-using SalesApi.Domain.Validation;
+using SalesApi.Domain.ValueObjects;
 
 namespace SalesApi.Domain.Entities;
 
@@ -34,15 +34,14 @@ public class Sale : BaseEntity
     public DateTimeOffset Date { get; private set; }
 
     /// <summary>
-    /// Gets the external identity reference of the customer.
-    /// This is not a full aggregate, only an identity reference.
+    /// Snapshot reference of the customer at the time of sale.
     /// </summary>
-    public Guid CustomerId { get; private set; }
+    public ExternalCustomer Customer { get; private set; } = null!;
 
     /// <summary>
-    /// Gets the external identity reference of the branch.
+    /// Snapshot reference of the branch at the time of sale.
     /// </summary>
-    public Guid BranchId { get; private set; }
+    public ExternalBranch Branch { get; private set; } = null!;
 
     /// <summary>
     /// Gets the collection of items included in the sale.
@@ -65,13 +64,13 @@ public class Sale : BaseEntity
 
     public Sale(
         string saleNumber,
-        Guid customerId,
-        Guid branchId)
+        ExternalCustomer customer,
+        ExternalBranch branch)
     {
         Id = Guid.NewGuid();
         SaleNumber = saleNumber;
-        CustomerId = customerId;
-        BranchId = branchId;
+        Customer = customer ?? throw new ArgumentNullException(nameof(customer));
+        Branch = branch ?? throw new ArgumentNullException(nameof(branch));
         Date = DateTimeOffset.UtcNow;
         Status = SaleStatus.Active;
 
@@ -81,7 +80,9 @@ public class Sale : BaseEntity
     public void AddItem(SaleItem item)
     {
         if (Status == SaleStatus.Cancelled)
+        {
             throw new InvalidOperationException("Cannot add items to a cancelled sale.");
+        }
 
         _items.Add(item);
         RecalculateTotal();
@@ -90,25 +91,34 @@ public class Sale : BaseEntity
     public void Cancel()
     {
         if (Status == SaleStatus.Cancelled)
+        {
             throw new InvalidOperationException("Sale already cancelled.");
+        }
 
         Status = SaleStatus.Cancelled;
     }
 
     private void RecalculateTotal()
     {
-        TotalAmount = _items.Sum(i => i.Total);
+        TotalAmount = _items.Sum(i => i.TotalAmount);
     }
 
     private void Validate()
     {
         if (string.IsNullOrWhiteSpace(SaleNumber))
+        {
             throw new ArgumentException("Sale number is required.");
+        }
 
-        if (CustomerId == Guid.Empty)
+        if (Customer is null)
+        {
             throw new ArgumentException("Customer is required.");
+        }
 
-        if (BranchId == Guid.Empty)
+        if (Branch is null)
+        {
             throw new ArgumentException("Branch is required.");
+        }
     }
+
 }
