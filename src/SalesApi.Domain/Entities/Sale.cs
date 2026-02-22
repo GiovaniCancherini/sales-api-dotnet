@@ -2,18 +2,18 @@ using SalesApi.Common.Security;
 using SalesApi.Common.Validation;
 using SalesApi.Domain.Common;
 using SalesApi.Domain.Enums;
+using SalesApi.Domain.Events;
 using SalesApi.Domain.Validation;
 using SalesApi.Domain.ValueObjects;
 
 namespace SalesApi.Domain.Entities;
-
 
 /// <summary>
 /// Represents a sale transaction within the system.
 /// This aggregate root encapsulates sale behavior, invariants,
 /// and business rules following Domain-Driven Design principles.
 /// </summary>
-public class Sale : BaseEntity
+public class Sale : AggregateRoot
 {
     private readonly List<SaleItem> _items = new();
 
@@ -76,6 +76,18 @@ public class Sale : BaseEntity
         Status = SaleStatus.Active;
     }
 
+    public static Sale Create(
+        string saleNumber,
+        ExternalCustomer customer,
+        ExternalBranch branch)
+    {
+        var sale = new Sale(saleNumber, customer, branch);
+
+        sale.Raise(new SaleCreatedEvent(sale.Id));
+
+        return sale;
+    }
+
     public void AddItem(SaleItem item)
     {
         if (Status == SaleStatus.Cancelled)
@@ -85,6 +97,8 @@ public class Sale : BaseEntity
 
         _items.Add(item);
         RecalculateTotal();
+
+        Raise(new SaleModifiedEvent(Id));
     }
 
     public void Cancel()
@@ -95,6 +109,17 @@ public class Sale : BaseEntity
         }
 
         Status = SaleStatus.Cancelled;
+
+        Raise(new SaleCancelledEvent(Id));
+    }
+    public void CancelItem(Guid itemId)
+    {
+        var item = _items.FirstOrDefault(i => i.Id == itemId)
+            ?? throw new InvalidOperationException("Item not found.");
+
+        item.Cancel();
+
+        Raise(new ItemCancelledEvent(Id, itemId));
     }
 
     private void RecalculateTotal()

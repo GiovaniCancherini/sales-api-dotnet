@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SalesApi.ORM.Repositories;
 
-
 /// <summary>
 /// Implementation of ISaleRepository using Entity Framework Core.
 /// </summary>

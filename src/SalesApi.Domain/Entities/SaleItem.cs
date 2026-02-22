@@ -8,7 +8,6 @@ using FluentValidation;
 
 namespace SalesApi.Domain.Entities;
 
-
 /// <summary>
 /// Represents an item within a sale.
 /// This entity belongs to the Sale aggregate and

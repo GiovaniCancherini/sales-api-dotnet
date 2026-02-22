@@ -2,7 +2,6 @@ using SalesApi.Domain.Entities;
 
 namespace SalesApi.Domain.Repositories;
 
-
 /// <summary>
 /// Repository contract for managing persistence operations
 /// of the <see cref="Sale"/> aggregate root.

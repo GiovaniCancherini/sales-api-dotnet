@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 
 namespace SalesApi.Domain.ValueObjects
 {
-
-
     /// <summary>
     /// Represents a snapshot reference of an external Branch.
     /// 
