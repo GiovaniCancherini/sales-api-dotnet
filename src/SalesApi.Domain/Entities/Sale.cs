@@ -112,6 +112,7 @@ public class Sale : AggregateRoot
 
         Raise(new SaleCancelledEvent(Id));
     }
+
     public void CancelItem(Guid itemId)
     {
         var item = _items.FirstOrDefault(i => i.Id == itemId)
