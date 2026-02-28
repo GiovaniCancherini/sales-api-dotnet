@@ -20,7 +20,7 @@ public static class SaleTestData
     {
         var sale = GenerateValidSale();
         sale.AddItem(SaleItemTestData.GenerateValidSaleItem());
-        sale.ClearEvents(); // limpa eventos do Create/Add
+        sale.ClearEvents(); // clears events from Create/Add
         return sale;
     }
 }

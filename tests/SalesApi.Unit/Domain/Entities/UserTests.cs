@@ -29,10 +29,10 @@ public class UserTests
     }
 
     /// <summary>
-    /// Tests that when a activated user is inactived, their status changes to Inactive.
+    /// Tests that when an active user is deactivated, their status changes to Inactive.
     /// </summary>
-    [Fact(DisplayName = "User status should change to Active when activated")]
-    public void Given_ActivedUser_When_Deactivated_Then_StatusShouldBeInactive()
+    [Fact(DisplayName = "User status should change to Inactive when deactivated")]
+    public void Given_ActiveUser_When_Deactivated_Then_StatusShouldBeInactive()
     {
         // Arrange
         var user = UserTestData.GenerateValidUser();

@@ -109,7 +109,7 @@ public class SaleTests
         sale.CancelItem(item.Id);
 
         // Assert
-        Assert.True(item.IsCancelled); // assumindo que exista essa propriedade
+        Assert.True(item.IsCancelled); // assuming this property exists
     }
 
     [Fact(DisplayName = "Given sale without item When cancelling item Then should throw exception")]
@@ -218,7 +218,7 @@ public class SaleTests
         var sale = SaleTestData.GenerateValidSale();
         var item = SaleItemTestData.GenerateValidSaleItem();
 
-        sale.ClearEvents(); // remove evento do Create
+        sale.ClearEvents(); // removes event from Create
 
         // Act
         sale.AddItem(item);
