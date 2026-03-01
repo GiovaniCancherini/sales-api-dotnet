@@ -59,8 +59,7 @@ public class Sale : AggregateRoot
     /// Gets the current status of the sale.
     /// Possible values: Active or Cancelled.
     /// </summary>
-        public SaleStatus Status { get; private set; }
-        public decimal TotalAmount { get; set; }
+    public SaleStatus Status { get; private set; }
 
     private Sale() { } // Required by EF Core
 
@@ -68,9 +67,9 @@ public class Sale : AggregateRoot
         string saleNumber,
         ExternalCustomer customer,
         ExternalBranch branch)
-        {
-            Id = Guid.NewGuid();
-            SaleNumber = saleNumber;
+    {
+        Id = Guid.NewGuid();
+        SaleNumber = saleNumber;
         Customer = customer ?? throw new ArgumentNullException(nameof(customer));
         Branch = branch ?? throw new ArgumentNullException(nameof(branch));
         Date = DateTimeOffset.UtcNow;
@@ -87,31 +86,29 @@ public class Sale : AggregateRoot
         sale.Raise(new SaleCreatedEvent(sale.Id));
 
         return sale;
-        }
+    }
 
     public void AddItem(SaleItem item)
-        {
+    {
         if (Status == SaleStatus.Cancelled)
-            {
+        {
             throw new InvalidOperationException("Cannot add items to a cancelled sale.");
-            }
-            var discountPercentage = CalculateDiscount(quantity);
-            var item = new SaleItem(saleId, productId, productName, quantity, unitPrice, discountPercentage);
-
+        }
+        
         _items.Add(item);
-            RecalculateTotal();
+        RecalculateTotal();
 
         Raise(new SaleModifiedEvent(Id));
-        }
+    }
 
-        public void Cancel()
-        {
+    public void Cancel()
+    {
         if (Status == SaleStatus.Cancelled)
         {
             throw new InvalidOperationException("Sale already cancelled.");
         }
 
-            Status = SaleStatus.Cancelled;
+        Status = SaleStatus.Cancelled;
 
         Raise(new SaleCancelledEvent(Id));
     }
@@ -124,19 +121,19 @@ public class Sale : AggregateRoot
         item.Cancel();
 
         Raise(new ItemCancelledEvent(Id, itemId));
-        }
+    }
 
-        private void RecalculateTotal()
-        {
+    private void RecalculateTotal()
+    {
         TotalAmount = _items.Sum(i => i.TotalAmount);
-        }
+    }
 
     public ValidationResultDetail Validate()
-            {
+    {
         var validator = new SaleValidator();
         var result = validator.Validate(this);
         return new ValidationResultDetail
-            {
+        {
             IsValid = result.IsValid,
             Errors = result.Errors.Select(o => (ValidationErrorDetail)o)
         };

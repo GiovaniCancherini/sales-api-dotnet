@@ -47,22 +47,34 @@ public class SaleRepository : ISaleRepository
             .FirstOrDefaultAsync(s => s.SaleNumber == saleNumber, cancellationToken);
     }
 
-    public async Task<bool> ExistsAsync(string saleNumber, CancellationToken cancellationToken = default)
+    public async Task<List<Sale>?> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Sales
-            .AnyAsync(s => s.SaleNumber == saleNumber, cancellationToken);
+            .Include(s => s.Items)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Sale?> UpdateAsync(Sale sale, CancellationToken cancellationToken = default)
+    {
+        _context.Sales.Update(sale);
+        await _context.SaveChangesAsync(cancellationToken);
+        return sale;
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
-        {
+    {
         var sale = await GetByIdAsync(id, cancellationToken);
         if (sale == null)
             return false;
-        }
 
         _context.Sales.Remove(sale);
         await _context.SaveChangesAsync(cancellationToken);
         return true;
     }
+
+    public async Task<bool> ExistsAsync(string saleNumber, CancellationToken cancellationToken = default)
+    {
+        return await _context.Sales
+            .AnyAsync(s => s.SaleNumber == saleNumber, cancellationToken);
+    }
 }
-    

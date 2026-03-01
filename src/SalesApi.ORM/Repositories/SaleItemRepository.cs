@@ -72,7 +72,7 @@ public class SaleItemRepository : ISaleItemRepository
     public async Task<IEnumerable<SaleItem>> GetAllByIdSaleAsync(Guid idSale, CancellationToken cancellationToken = default)
     {
         return await _context.SaleItems
-            .Where(s => s.SaleId == idSale)
+            .Where(s => s.Id == idSale)
             .ToListAsync(cancellationToken);
     }
 
