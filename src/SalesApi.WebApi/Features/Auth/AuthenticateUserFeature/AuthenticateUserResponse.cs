@@ -1,5 +1,3 @@
-using System;
-
 namespace SalesApi.WebApi.Features.Auth.AuthenticateUserFeature;
 
 /// <summary>

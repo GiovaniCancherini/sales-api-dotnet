@@ -13,8 +13,8 @@ namespace SalesApi.Domain.Entities;
 /// This entity belongs to the Sale aggregate and
 /// encapsulates pricing and discount business rules.
 /// </summary>
-public class SaleItem : BaseEntity
-{
+    public class SaleItem : BaseEntity
+    {
     /// <summary>
     /// Gets the unique identifier of the sale item.
     /// </summary>
@@ -29,13 +29,15 @@ public class SaleItem : BaseEntity
     /// Gets the quantity of the product in the sale.
     /// Must be greater than zero.
     /// </summary>
-    public int Quantity { get; private set; }
+        public int Quantity { get; private set; }
 
     /// <summary>
     /// Gets the unit price of the product at the time of sale.
     /// Must be greater than zero.
     /// </summary>
-    public decimal UnitPrice { get; private set; }
+        public decimal UnitPrice { get; private set; }
+        public decimal DiscountPercentage { get; private set; }
+        public decimal TotalPrice { get; private set; }
 
     /// <summary>
     /// Gets the discount amount applied to this item.
@@ -61,11 +63,11 @@ public class SaleItem : BaseEntity
         int quantity,
         decimal unitPrice,
         decimal discount = 0)
-    {
-        Id = Guid.NewGuid();
+        {
+            Id = Guid.NewGuid();
         Product = product ?? throw new ArgumentNullException(nameof(product));
-        Quantity = quantity;
-        UnitPrice = unitPrice;
+            Quantity = quantity;
+            UnitPrice = unitPrice;
         Discount = discount;
         IsCancelled = false;
 
@@ -92,10 +94,10 @@ public class SaleItem : BaseEntity
 
         IsCancelled = true;
         TotalAmount = 0;
-    }
+        }
 
     private void RecalculateTotal()
-    {
+        {
         var subtotal = Quantity * UnitPrice;
 
         if (Discount > subtotal)
@@ -104,7 +106,7 @@ public class SaleItem : BaseEntity
         }
 
         TotalAmount = subtotal - Discount;
-    }
+        }
 
     public ValidationResultDetail Validate()
     {

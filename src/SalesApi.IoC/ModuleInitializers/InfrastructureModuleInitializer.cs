@@ -3,7 +3,6 @@ using SalesApi.ORM;
 using SalesApi.ORM.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace SalesApi.IoC.ModuleInitializers;

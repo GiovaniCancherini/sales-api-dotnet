@@ -13,22 +13,22 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
 
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id)
-            .HasColumnType("uuid")
-            .HasDefaultValueSql("gen_random_uuid()");
+               .HasColumnType("uuid")
+               .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(s => s.SaleNumber)
-            .IsRequired()
-            .HasMaxLength(50);
+               .IsRequired()
+               .HasMaxLength(50);
 
         builder.HasIndex(s => s.SaleNumber)
             .IsUnique();
 
         builder.Property(s => s.Date)
-            .IsRequired();
+               .IsRequired();
 
         builder.Property(s => s.TotalAmount)
-            .HasColumnType("decimal(18,2)")
-            .IsRequired();
+               .HasColumnType("decimal(18,2)")
+               .IsRequired();
 
         builder.Property(s => s.Status)
             .HasConversion<string>()
@@ -64,10 +64,11 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
                 .IsRequired();
         });
 
+        // -> relacionamento com SaleItems
         builder.HasMany(s => s.Items)
             .WithOne()
             .HasForeignKey("SaleId")
             .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade);
+               .OnDelete(DeleteBehavior.Cascade);
     }
 }

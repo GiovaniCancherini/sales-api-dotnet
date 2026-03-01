@@ -13,15 +13,15 @@ public class SaleItemConfiguration : IEntityTypeConfiguration<SaleItem>
 
         builder.HasKey(i => i.Id);
         builder.Property(i => i.Id)
-            .HasColumnType("uuid")
-            .HasDefaultValueSql("gen_random_uuid()");
+               .HasColumnType("uuid")
+               .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(i => i.Quantity)
-            .IsRequired();
+               .IsRequired();
 
         builder.Property(i => i.UnitPrice)
-            .HasColumnType("decimal(18,2)")
-            .IsRequired();
+               .HasColumnType("decimal(18,2)")
+               .IsRequired();
 
         builder.Property(i => i.Discount)
             .HasColumnType("decimal(18,2)");
