@@ -1,14 +1,7 @@
 using SalesApi.Domain.Entities;
+using SalesApi.Domain.Common;
 
 namespace SalesApi.Domain.Events
 {
-    public class UserRegisteredEvent
-    {
-        public User User { get; }
-
-        public UserRegisteredEvent(User user)
-        {
-            User = user;
-        }
-    }
+    public sealed record UserRegisteredEvent (User user) : DomainEvent;
 }

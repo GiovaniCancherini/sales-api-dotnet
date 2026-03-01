@@ -1,70 +1,145 @@
-﻿using SalesApi.Domain.Common;
+using SalesApi.Common.Security;
+using SalesApi.Common.Validation;
+using SalesApi.Domain.Common;
 using SalesApi.Domain.Enums;
+using SalesApi.Domain.Events;
+using SalesApi.Domain.Validation;
+using SalesApi.Domain.ValueObjects;
 
-namespace SalesApi.Domain.Entities
+namespace SalesApi.Domain.Entities;
+
+/// <summary>
+/// Represents a sale transaction within the system.
+/// This aggregate root encapsulates sale behavior, invariants,
+/// and business rules following Domain-Driven Design principles.
+/// </summary>
+public class Sale : AggregateRoot
 {
-    public class Sale : BaseEntity
-    {
-        public string SaleNumber { get; private set; }
-        public DateTime Date { get; private set; }
-        public string CustomerId { get; private set; }
-        public string CustomerName { get; private set; }
-        public string BranchId { get; private set; }
-        public string BranchName { get; private set; }
+    private readonly List<SaleItem> _items = new();
+
+    /// <summary>
+    /// Gets the unique identifier of the sale.
+    /// </summary>
+    public Guid Id { get; private set; }
+
+    /// <summary>
+    /// Gets the business sale number.
+    /// This value is generated externally and must be unique.
+    /// </summary>
+    public string SaleNumber { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Gets the date and time when the sale was created.
+    /// Stored as UTC.
+    /// </summary>
+    public DateTimeOffset Date { get; private set; }
+
+    /// <summary>
+    /// Snapshot reference of the customer at the time of sale.
+    /// </summary>
+    public ExternalCustomer Customer { get; private set; } = null!;
+
+    /// <summary>
+    /// Snapshot reference of the branch at the time of sale.
+    /// </summary>
+    public ExternalBranch Branch { get; private set; } = null!;
+
+    /// <summary>
+    /// Gets the collection of items included in the sale.
+    /// </summary>
+    public IReadOnlyCollection<SaleItem> Items => _items.AsReadOnly();
+
+    /// <summary>
+    /// Gets the total monetary amount of the sale.
+    /// This value is calculated based on the items.
+    /// </summary>
+    public decimal TotalAmount { get; private set; }
+
+    /// <summary>
+    /// Gets the current status of the sale.
+    /// Possible values: Active or Cancelled.
+    /// </summary>
         public SaleStatus Status { get; private set; }
         public decimal TotalAmount { get; set; }
 
-        public ICollection<SaleItem> Items { get; set; } = new List<SaleItem>();
+    private Sale() { } // Required by EF Core
 
-        protected Sale() { }
-
-        public Sale(string saleNumber, string customerId, string customerName, string branchId, string branchName)
+    public Sale(
+        string saleNumber,
+        ExternalCustomer customer,
+        ExternalBranch branch)
         {
             Id = Guid.NewGuid();
             SaleNumber = saleNumber;
-            Date = DateTime.UtcNow;
-            CustomerId = customerId;
-            CustomerName = customerName;
-            BranchId = branchId;
-            BranchName = branchName;
-            Status = SaleStatus.Openned;
-            TotalAmount = 0;
+        Customer = customer ?? throw new ArgumentNullException(nameof(customer));
+        Branch = branch ?? throw new ArgumentNullException(nameof(branch));
+        Date = DateTimeOffset.UtcNow;
+        Status = SaleStatus.Active;
+    }
+
+    public static Sale Create(
+        string saleNumber,
+        ExternalCustomer customer,
+        ExternalBranch branch)
+    {
+        var sale = new Sale(saleNumber, customer, branch);
+
+        sale.Raise(new SaleCreatedEvent(sale.Id));
+
+        return sale;
         }
 
-        public void AddItem(Guid saleId, string productId, string productName, int quantity, decimal unitPrice)
+    public void AddItem(SaleItem item)
         {
-            if (quantity > 20)
+        if (Status == SaleStatus.Cancelled)
             {
-                throw new InvalidOperationException("Cannot sell more than 20 identical items.");
+            throw new InvalidOperationException("Cannot add items to a cancelled sale.");
             }
             var discountPercentage = CalculateDiscount(quantity);
             var item = new SaleItem(saleId, productId, productName, quantity, unitPrice, discountPercentage);
 
-            Items.Add(item);
+        _items.Add(item);
             RecalculateTotal();
+
+        Raise(new SaleModifiedEvent(Id));
         }
 
         public void Cancel()
         {
+        if (Status == SaleStatus.Cancelled)
+        {
+            throw new InvalidOperationException("Sale already cancelled.");
+        }
+
             Status = SaleStatus.Cancelled;
+
+        Raise(new SaleCancelledEvent(Id));
+    }
+
+    public void CancelItem(Guid itemId)
+    {
+        var item = _items.FirstOrDefault(i => i.Id == itemId)
+            ?? throw new InvalidOperationException("Item not found.");
+
+        item.Cancel();
+
+        Raise(new ItemCancelledEvent(Id, itemId));
         }
 
         private void RecalculateTotal()
         {
-            TotalAmount = Items.Sum(i => i.TotalPrice);
+        TotalAmount = _items.Sum(i => i.TotalAmount);
         }
 
-        private decimal CalculateDiscount(int quantity)
-        {
-            if (quantity >= 10)
+    public ValidationResultDetail Validate()
             {
-                return 0.20m;
-            }
-            if (quantity >= 4)
+        var validator = new SaleValidator();
+        var result = validator.Validate(this);
+        return new ValidationResultDetail
             {
-                return 0.10m;
-            }
-            return 0;
-        }
+            IsValid = result.IsValid,
+            Errors = result.Errors.Select(o => (ValidationErrorDetail)o)
+        };
     }
+
 }

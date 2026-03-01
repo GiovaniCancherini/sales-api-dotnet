@@ -2,16 +2,16 @@ using SalesApi.Common.Security;
 using SalesApi.Common.Validation;
 using SalesApi.Domain.Common;
 using SalesApi.Domain.Enums;
+using SalesApi.Domain.Events;
 using SalesApi.Domain.Validation;
 
 namespace SalesApi.Domain.Entities;
-
 
 /// <summary>
 /// Represents a user in the system with authentication and profile information.
 /// This entity follows domain-driven design principles and includes business rules validation.
 /// </summary>
-public class User : BaseEntity, IUser
+public class User : AggregateRoot, IUser
 {
     /// <summary>
     /// Gets the user's full name.
@@ -84,6 +84,8 @@ public class User : BaseEntity, IUser
     public User()
     {
         CreatedAt = DateTime.UtcNow;
+
+        Raise(new UserRegisteredEvent(this));
     }
 
     /// <summary>
