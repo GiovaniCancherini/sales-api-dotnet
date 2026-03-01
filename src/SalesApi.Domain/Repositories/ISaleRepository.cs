@@ -28,6 +28,16 @@ public interface ISaleRepository
     /// Retrieves a sale by its business sale number.
     /// </summary>
     Task<Sale?> GetBySaleNumberAsync(string saleNumber, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Retrieves all sales.
+    /// </summary>
+    Task<List<Sale>?> GetAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates a sale from the repository.
+    /// </summary>
+    Task<Sale?> UpdateAsync(Sale sale, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a sale from the repository.
