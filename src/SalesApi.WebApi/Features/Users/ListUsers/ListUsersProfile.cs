@@ -14,5 +14,8 @@ public class ListUsersProfile : Profile
     public ListUsersProfile()
     {
         CreateMap<ListUsersRequest, GetAllUserQuery>();
+
+        // Was missing entirely - ListUsers always threw AutoMapperMappingException.
+        CreateMap<GetAllUserResult, ListUsersResponse>();
     }
 }

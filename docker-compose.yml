@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   salesapi.webapi:
     container_name: sales_api_webapi
@@ -11,12 +9,16 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__DefaultConnection=Host=salesapi.database;Port=5432;Database=sales_api;Username=developer;Password=***REMOVED***
     ports:
       - "8080"
       - "8081"
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+    depends_on:
+      salesapi.database:
+        condition: service_healthy
 
   salesapi.database:
     container_name: sales_api_database
@@ -29,6 +31,11 @@ services:
     ports:
       - "5432:5432"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U developer -d sales_api"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   salesapi.nosql:
     container_name: sales_api_nosql 

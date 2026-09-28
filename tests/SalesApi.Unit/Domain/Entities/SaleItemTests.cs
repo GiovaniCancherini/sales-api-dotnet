@@ -33,40 +33,49 @@ public class SaleItemTests
 
     #endregion
 
-    #region ApplyDiscount
+    #region Discount tiers (README Business Rules)
 
-    [Fact(DisplayName = "Given valid discount When applying Then total should be updated")]
-    public void Given_ValidDiscount_When_ApplyDiscount_Then_TotalShouldBeUpdated()
+    [Fact(DisplayName = "Given quantity below 4 When creating Then no discount is applied")]
+    public void Given_QuantityBelowFour_When_Create_Then_NoDiscount()
     {
-        // Arrange
-        var item = SaleItemTestData.GenerateWithValues(2, 10m); // subtotal 20
-
-        // Act
-        item.ApplyDiscount(5m);
+        // Arrange & Act
+        var item = SaleItemTestData.GenerateWithValues(3, 10m); // subtotal 30
 
         // Assert
-        Assert.Equal(5m, item.Discount);
-        Assert.Equal(15m, item.TotalAmount);
+        Assert.Equal(0m, item.Discount);
+        Assert.Equal(30m, item.TotalAmount);
     }
 
-    [Fact(DisplayName = "Given negative discount When applying Then should throw exception")]
-    public void Given_NegativeDiscount_When_ApplyDiscount_Then_ShouldThrowException()
+    [Fact(DisplayName = "Given quantity between 4 and 9 When creating Then a 10% discount is applied")]
+    public void Given_QuantityBetweenFourAndNine_When_Create_Then_TenPercentDiscount()
     {
-        // Arrange
-        var item = SaleItemTestData.GenerateValidSaleItem();
+        // Arrange & Act
+        var item = SaleItemTestData.GenerateWithValues(4, 10m); // subtotal 40
 
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() => item.ApplyDiscount(-1m));
+        // Assert
+        Assert.Equal(4m, item.Discount); // 10% of 40
+        Assert.Equal(36m, item.TotalAmount);
     }
 
-    [Fact(DisplayName = "Given discount greater than subtotal When applying Then should throw exception")]
-    public void Given_DiscountGreaterThanSubtotal_When_ApplyDiscount_Then_ShouldThrowException()
+    [Fact(DisplayName = "Given quantity between 10 and 20 When creating Then a 20% discount is applied")]
+    public void Given_QuantityBetweenTenAndTwenty_When_Create_Then_TwentyPercentDiscount()
+    {
+        // Arrange & Act
+        var item = SaleItemTestData.GenerateWithValues(10, 10m); // subtotal 100
+
+        // Assert
+        Assert.Equal(20m, item.Discount); // 20% of 100
+        Assert.Equal(80m, item.TotalAmount);
+    }
+
+    [Fact(DisplayName = "Given quantity above 20 When creating Then should throw exception")]
+    public void Given_QuantityAboveTwenty_When_Create_Then_ShouldThrowException()
     {
         // Arrange
-        var item = SaleItemTestData.GenerateWithValues(1, 10m); // subtotal 10
+        var product = ExternalProductTestData.GenerateValidExternalProduct();
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => item.ApplyDiscount(20m));
+        Assert.Throws<InvalidOperationException>(() => new SaleItem(product, 21, 10m));
     }
 
     #endregion
@@ -148,11 +157,11 @@ public class SaleItemTests
 
     #region Business Calculation
 
-    [Fact(DisplayName = "Given quantity and price When creating Then total equals quantity multiplied by price")]
+    [Fact(DisplayName = "Given quantity and price below the discount threshold When creating Then total equals quantity multiplied by price")]
     public void Given_QuantityAndPrice_When_Create_Then_TotalEqualsQuantityTimesPrice()
     {
-        // Arrange
-        var quantity = 5;
+        // Arrange - quantity kept below 4 so no discount tier interferes with this check
+        var quantity = 2;
         var unitPrice = 3m;
         var product = ExternalProductTestData.GenerateValidExternalProduct();
 
@@ -160,7 +169,7 @@ public class SaleItemTests
         var item = new SaleItem(product, quantity, unitPrice);
 
         // Assert
-        Assert.Equal(15m, item.TotalAmount);
+        Assert.Equal(6m, item.TotalAmount);
     }
 
     #endregion

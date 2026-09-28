@@ -1,6 +1,8 @@
-﻿namespace SalesApi.Domain.Common;
+﻿using MediatR;
 
-public abstract record DomainEvent
+namespace SalesApi.Domain.Common;
+
+public abstract record DomainEvent : INotification
 {
     public DateTime OccurredOn { get; init; } = DateTime.UtcNow;
 }

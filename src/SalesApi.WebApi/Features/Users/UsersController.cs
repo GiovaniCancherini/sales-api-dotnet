@@ -3,7 +3,6 @@ using SalesApi.Application.Users.DeleteUser;
 using SalesApi.Application.Users.GetAllUser;
 using SalesApi.Application.Users.GetUser;
 using SalesApi.Application.Users.UpdateUser;
-using SalesApi.Domain.Entities;
 using SalesApi.WebApi.Common;
 using SalesApi.WebApi.Features.Users.CreateUser;
 using SalesApi.WebApi.Features.Users.DeleteUser;
@@ -12,6 +11,7 @@ using SalesApi.WebApi.Features.Users.ListUsers;
 using SalesApi.WebApi.Features.Users.UpdateUser;
 using AutoMapper;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 
@@ -20,6 +20,7 @@ namespace SalesApi.WebApi.Features.Users;
 /// <summary>
 /// Controller for managing user operations
 /// </summary>
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : BaseController
@@ -39,11 +40,14 @@ public class UsersController : BaseController
     }
 
     /// <summary>
-    /// Creates a new user
+    /// Creates a new user. Anonymous: there is no seed data anywhere in the
+    /// database, so this is the only way to bootstrap the very first account -
+    /// requiring auth here would make the API unusable from a fresh database.
     /// </summary>
     /// <param name="request">The user creation request</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The created user details</returns>
+    [AllowAnonymous]
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponseWithData<CreateUserResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
@@ -88,12 +92,7 @@ public class UsersController : BaseController
         var command = _mapper.Map<GetUserQuery>(request.Id);
         var response = await _mediator.Send(command, cancellationToken);
 
-        return Ok(new ApiResponseWithData<GetUserResponse>
-        {
-            Success = true,
-            Message = "User retrieved successfully",
-            Data = _mapper.Map<GetUserResponse>(response)
-        });
+        return Ok(_mapper.Map<GetUserResponse>(response), "User retrieved successfully");
     }
 
     /// <summary>
@@ -118,11 +117,7 @@ public class UsersController : BaseController
         var command = _mapper.Map<DeleteUserCommand>(request.Id);
         await _mediator.Send(command, cancellationToken);
 
-        return Ok(new ApiResponse
-        {
-            Success = true,
-            Message = "User deleted successfully"
-        });
+        return Ok("User deleted successfully");
     }
 
     /// <summary>
@@ -151,23 +146,16 @@ public class UsersController : BaseController
         var command = _mapper.Map<GetAllUserQuery>(request);
         var users = await _mediator.Send(command, cancellationToken);
 
-        // Aplica paginação
-        var userEntities = _mapper.Map<List<User>>(users);
-        var paginatedUsers = await PaginatedList<GetAllUserResult>.CreateAsync(users.AsQueryable(), pageNumber, pageSize);
-        var dtos = _mapper.Map<List<ListUsersResponse>>(paginatedUsers);
+        // PaginatedList<T>.CreateAsync uses EF's CountAsync/ToListAsync, which need a
+        // real IQueryable backed by IAsyncQueryProvider - users.AsQueryable() here just
+        // wraps an in-memory List (LINQ-to-Objects), which throws. Page synchronously
+        // instead, same fix as SalesController.ListSales.
+        var dtos = _mapper.Map<List<ListUsersResponse>>(users);
+        var totalCount = dtos.Count;
+        var pageItems = dtos.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        var paginated = new PaginatedList<ListUsersResponse>(pageItems, totalCount, pageNumber, pageSize);
 
-        // Retorna PaginatedResponse
-        var paginatedResponse = new PaginatedResponse<ListUsersResponse>
-        {
-            Data = dtos,
-            CurrentPage = paginatedUsers.CurrentPage,
-            TotalPages = paginatedUsers.TotalPages,
-            TotalCount = paginatedUsers.TotalCount,
-            Success = true,
-            Message = "List of users retrieved successfully"
-        };
-
-        return Ok(paginatedResponse);
+        return OkPaginated(paginated, "List of users retrieved successfully");
     }
 
     /// <summary>
@@ -191,11 +179,6 @@ public class UsersController : BaseController
         var command = _mapper.Map<UpdateUserCommand>(request);
         var response = await _mediator.Send(command, cancellationToken);
 
-        return Ok(new ApiResponseWithData<UpdateUserResponse>
-        {
-            Success = true,
-            Message = "User Updated successfully",
-            Data = _mapper.Map<UpdateUserResponse>(response)
-        });
+        return Ok(_mapper.Map<UpdateUserResponse>(response), "User Updated successfully");
     }
 }

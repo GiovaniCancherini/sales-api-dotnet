@@ -1,39 +1,27 @@
-using SalesApi.Application.Sales.CreateSale;
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
-using AutoMapper;
+using SalesApi.Domain.ValueObjects;
 using FluentValidation;
 using MediatR;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace SalesApi.Application.Sales.UpdateSale;
 
 /// <summary>
-/// Handler for processing UpdateSaleCommand requests
+/// Handler for processing UpdateSaleCommand requests. Loads the Sale, builds
+/// SaleItem entities directly from the command's flat data (no AutoMapper -
+/// same construction issue CreateSaleHandler had would apply here too, since
+/// SaleItem only exposes a constructor + private setters), then replaces the
+/// item list via Sale.ReplaceItems.
 /// </summary>
 public class UpdateSaleHandler : IRequestHandler<UpdateSaleCommand, UpdateSaleResponse>
 {
     private readonly ISaleRepository _saleRepository;
-    private readonly IMapper _mapper;
 
-    /// <summary>
-    /// Initializes a new instance of UpdateSaleHandler
-    /// </summary>
-    /// <param name="saleRepository">The sale repository</param>
-    /// <param name="mapper">The AutoMapper instance</param>
-    /// <param name="validator">The validator for CreateSaleCommand</param>
-    public UpdateSaleHandler(ISaleRepository saleRepository, IMapper mapper)
+    public UpdateSaleHandler(ISaleRepository saleRepository)
     {
         _saleRepository = saleRepository;
-        _mapper = mapper;
     }
 
-    /// <summary>
-    /// Handles the UpdateSaleCommand request
-    /// </summary>
-    /// <param name="request">The UpdateSale command</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The result of the delete operation</returns>
     public async Task<UpdateSaleResponse> Handle(UpdateSaleCommand request, CancellationToken cancellationToken)
     {
         var validator = new UpdateSaleValidator();
@@ -44,11 +32,19 @@ public class UpdateSaleHandler : IRequestHandler<UpdateSaleCommand, UpdateSaleRe
             throw new ValidationException(validationResult.Errors);
         }
 
-        var sale = _mapper.Map<Sale>(request);
+        var sale = await _saleRepository.GetByIdAsync(request.Id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Sale with ID {request.Id} not found");
 
-        var updatedSale = await _saleRepository.UpdateAsync(sale, cancellationToken);
-        var result = _mapper.Map<UpdateSaleResponse>(updatedSale);
-        
-        return result;
+        var newItems = request.Items.Select(item =>
+        {
+            var product = new ExternalProduct(Guid.Parse(item.ProductId), item.ProductName, item.ProductSku);
+            return new SaleItem(product, item.Quantity, item.UnitPrice);
+        }).ToList();
+
+        sale.ReplaceItems(newItems);
+
+        await _saleRepository.UpdateAsync(sale, cancellationToken);
+
+        return new UpdateSaleResponse { Success = true };
     }
 }

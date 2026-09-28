@@ -29,8 +29,12 @@ public static class LoggingExtension
     /// </summary>
     static readonly Func<LogEvent, bool> _filterPredicate = exclusionPredicate =>
     {
-
-        if (exclusionPredicate.Level != LogEventLevel.Information) return true;
+        // ByExcluding drops the event when this returns true. The original
+        // check here was inverted: "!= Information" was true for every
+        // Warning/Error/Fatal, so this silently dropped every non-Information
+        // log in the app, always - nobody could ever see an exception logged.
+        // Only Information-level noise (200s on /health) should ever be excluded.
+        if (exclusionPredicate.Level != LogEventLevel.Information) return false;
 
         exclusionPredicate.Properties.TryGetValue("StatusCode", out var statusCode);
         exclusionPredicate.Properties.TryGetValue("Path", out var path);

@@ -101,6 +101,25 @@ public class Sale : AggregateRoot
         Raise(new SaleModifiedEvent(Id));
     }
 
+    /// <summary>
+    /// Replaces the entire item list (e.g. correcting a sale after creation).
+    /// Customer/Branch/SaleNumber are never editable - they're the historical
+    /// facts of the sale - only its items can be corrected via Update.
+    /// </summary>
+    public void ReplaceItems(IEnumerable<SaleItem> items)
+    {
+        if (Status == SaleStatus.Cancelled)
+        {
+            throw new InvalidOperationException("Cannot update items of a cancelled sale.");
+        }
+
+        _items.Clear();
+        _items.AddRange(items);
+        RecalculateTotal();
+
+        Raise(new SaleModifiedEvent(Id));
+    }
+
     public void Cancel()
     {
         if (Status == SaleStatus.Cancelled)
@@ -119,6 +138,7 @@ public class Sale : AggregateRoot
             ?? throw new InvalidOperationException("Item not found.");
 
         item.Cancel();
+        RecalculateTotal();
 
         Raise(new ItemCancelledEvent(Id, itemId));
     }

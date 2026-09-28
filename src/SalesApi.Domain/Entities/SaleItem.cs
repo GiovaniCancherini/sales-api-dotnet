@@ -38,8 +38,8 @@ public class SaleItem : BaseEntity
     public decimal UnitPrice { get; private set; }
 
     /// <summary>
-    /// Gets the discount amount applied to this item.
-    /// Cannot be negative or greater than the item subtotal.
+    /// Gets the discount amount applied to this item, computed automatically
+    /// from Quantity - see the tiered discount rule in RecalculateTotal.
     /// </summary>
     public decimal Discount { get; private set; }
 
@@ -54,32 +54,38 @@ public class SaleItem : BaseEntity
     /// </summary>
     public bool IsCancelled { get; private set; }
 
+    /// <summary>
+    /// Maximum quantity of identical items allowed in a single sale line.
+    /// </summary>
+    private const int MaxQuantity = 20;
+
+    /// <summary>
+    /// Quantity thresholds and rates for the tiered discount business rule:
+    /// below 4 items, no discount; 4-9 items, 10%; 10-20 items, 20%.
+    /// </summary>
+    private const int SecondTierMinQuantity = 10;
+    private const int FirstTierMinQuantity = 4;
+    private const decimal SecondTierDiscount = 0.20m;
+    private const decimal FirstTierDiscount = 0.10m;
+
     private SaleItem() { } // Required by EF Core
 
     public SaleItem(
         ExternalProduct product,
         int quantity,
-        decimal unitPrice,
-        decimal discount = 0)
+        decimal unitPrice)
     {
+        if (quantity > MaxQuantity)
+        {
+            throw new InvalidOperationException($"Cannot sell more than {MaxQuantity} identical items.");
+        }
+
         Id = Guid.NewGuid();
         Product = product ?? throw new ArgumentNullException(nameof(product));
         Quantity = quantity;
         UnitPrice = unitPrice;
-        Discount = discount;
         IsCancelled = false;
 
-        RecalculateTotal();
-    }
-
-    public void ApplyDiscount(decimal discount)
-    {
-        if (discount < 0)
-        {
-            throw new ArgumentException("Discount cannot be negative.");
-        }
-
-        Discount = discount;
         RecalculateTotal();
     }
 
@@ -97,13 +103,20 @@ public class SaleItem : BaseEntity
     private void RecalculateTotal()
     {
         var subtotal = Quantity * UnitPrice;
-
-        if (Discount > subtotal)
-        {
-            throw new InvalidOperationException("Discount cannot exceed subtotal.");
-        }
-
+        Discount = subtotal * GetDiscountRate(Quantity);
         TotalAmount = subtotal - Discount;
+    }
+
+    /// <summary>
+    /// Quantity-based discount tiers (see README's Business Rules): below 4
+    /// items no discount, 4-9 items 10%, 10-20 items 20%. Quantity above 20
+    /// is rejected in the constructor, so it never reaches here.
+    /// </summary>
+    private static decimal GetDiscountRate(int quantity)
+    {
+        if (quantity >= SecondTierMinQuantity) return SecondTierDiscount;
+        if (quantity >= FirstTierMinQuantity) return FirstTierDiscount;
+        return 0m;
     }
 
     public ValidationResultDetail Validate()

@@ -13,6 +13,10 @@ public class GetUserProfile : Profile
     /// </summary>
     public GetUserProfile()
     {
-        CreateMap<User, GetUserResult>();
+        // User.Username doesn't match GetUserResult.Name by convention -
+        // without this, Name comes back empty (same bug found in CreateUser's
+        // response, likely shared by every User->*Result mapping).
+        CreateMap<User, GetUserResult>()
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Username));
     }
 }

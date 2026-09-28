@@ -53,7 +53,7 @@ public class SaleTests
         Assert.Equal(item.TotalAmount, sale.TotalAmount);
     }
 
-    [Fact(DisplayName = "Given cancelled sale When adding item Then should throw exception")]
+    [Fact(DisplayName = "Given cancelled sale When adding item Then should throw exception and leave sale unchanged")]
     public void Given_CancelledSale_When_AddItem_Then_ShouldThrowException()
     {
         // Arrange
@@ -63,6 +63,8 @@ public class SaleTests
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() => sale.AddItem(item));
+        Assert.Empty(sale.Items);
+        Assert.Equal(0m, sale.TotalAmount);
     }
 
     #endregion
@@ -109,7 +111,31 @@ public class SaleTests
         sale.CancelItem(item.Id);
 
         // Assert
-        Assert.True(item.IsCancelled); // assuming this property exists
+        Assert.True(item.IsCancelled);
+    }
+
+    /// <summary>
+    /// Regression guard: CancelItem used to leave Sale.TotalAmount stale
+    /// because it never called RecalculateTotal after cancelling the item.
+    /// Uses two items so the fix is proven against the full basket, not just
+    /// a trivial drop to zero.
+    /// </summary>
+    [Fact(DisplayName = "Given sale with two items When cancelling one Then total should reflect only the remaining item")]
+    public void Given_SaleWithTwoItems_When_CancelItem_Then_TotalShouldReflectRemainingItem()
+    {
+        // Arrange
+        var sale = SaleTestData.GenerateValidSale();
+        var keptItem = SaleItemTestData.GenerateWithValues(1, 20m);
+        var cancelledItem = SaleItemTestData.GenerateWithValues(1, 30m);
+        sale.AddItem(keptItem);
+        sale.AddItem(cancelledItem);
+
+        // Act
+        sale.CancelItem(cancelledItem.Id);
+
+        // Assert
+        Assert.Equal(0m, cancelledItem.TotalAmount);
+        Assert.Equal(20m, sale.TotalAmount);
     }
 
     [Fact(DisplayName = "Given sale without item When cancelling item Then should throw exception")]
@@ -120,6 +146,58 @@ public class SaleTests
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() => sale.CancelItem(Guid.NewGuid()));
+    }
+
+    #endregion
+
+    #region ReplaceItems
+
+    [Fact(DisplayName = "Given active sale When replacing items Then old items are removed and total reflects only the new ones")]
+    public void Given_ActiveSale_When_ReplaceItems_Then_OldItemsAreRemovedAndTotalUpdated()
+    {
+        // Arrange
+        var sale = SaleTestData.GenerateValidSale();
+        var originalItem = SaleItemTestData.GenerateWithValues(1, 20m);
+        sale.AddItem(originalItem);
+
+        var newItem1 = SaleItemTestData.GenerateWithValues(1, 5m);
+        var newItem2 = SaleItemTestData.GenerateWithValues(1, 7m);
+
+        // Act
+        sale.ReplaceItems(new[] { newItem1, newItem2 });
+
+        // Assert
+        Assert.Equal(2, sale.Items.Count);
+        Assert.DoesNotContain(sale.Items, i => i.Id == originalItem.Id);
+        Assert.Equal(12m, sale.TotalAmount);
+    }
+
+    [Fact(DisplayName = "Given cancelled sale When replacing items Then should throw exception")]
+    public void Given_CancelledSale_When_ReplaceItems_Then_ShouldThrowException()
+    {
+        // Arrange
+        var sale = SaleTestData.GenerateValidSale();
+        sale.Cancel();
+        var newItem = SaleItemTestData.GenerateValidSaleItem();
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() => sale.ReplaceItems(new[] { newItem }));
+    }
+
+    [Fact(DisplayName = "Given active sale When replacing items Then should raise SaleModifiedEvent")]
+    public void Given_ActiveSale_When_ReplaceItems_Then_ShouldRaiseSaleModifiedEvent()
+    {
+        // Arrange
+        var sale = SaleTestData.GenerateValidSaleWithItem();
+        var newItem = SaleItemTestData.GenerateValidSaleItem();
+
+        // Act
+        sale.ReplaceItems(new[] { newItem });
+
+        // Assert
+        var domainEvent = Assert.Single(sale.Events);
+        var modifiedEvent = Assert.IsType<SaleModifiedEvent>(domainEvent);
+        Assert.Equal(sale.Id, modifiedEvent.SaleId);
     }
 
     #endregion
@@ -208,7 +286,8 @@ public class SaleTests
 
         // Assert
         var domainEvent = Assert.Single(sale.Events);
-        Assert.IsType<SaleCreatedEvent>(domainEvent);
+        var createdEvent = Assert.IsType<SaleCreatedEvent>(domainEvent);
+        Assert.Equal(sale.Id, createdEvent.SaleId);
     }
 
     [Fact(DisplayName = "Given active sale When adding item Then should raise SaleModifiedEvent")]
@@ -225,7 +304,8 @@ public class SaleTests
 
         // Assert
         var domainEvent = Assert.Single(sale.Events);
-        Assert.IsType<SaleModifiedEvent>(domainEvent);
+        var modifiedEvent = Assert.IsType<SaleModifiedEvent>(domainEvent);
+        Assert.Equal(sale.Id, modifiedEvent.SaleId);
     }
 
     [Fact(DisplayName = "Given active sale When cancelling Then should raise SaleCancelledEvent")]
@@ -240,7 +320,8 @@ public class SaleTests
 
         // Assert
         var domainEvent = Assert.Single(sale.Events);
-        Assert.IsType<SaleCancelledEvent>(domainEvent);
+        var cancelledEvent = Assert.IsType<SaleCancelledEvent>(domainEvent);
+        Assert.Equal(sale.Id, cancelledEvent.SaleId);
     }
 
     [Fact(DisplayName = "Given sale with item When cancelling item Then should raise ItemCancelledEvent")]
@@ -258,7 +339,9 @@ public class SaleTests
 
         // Assert
         var domainEvent = Assert.Single(sale.Events);
-        Assert.IsType<ItemCancelledEvent>(domainEvent);
+        var itemCancelledEvent = Assert.IsType<ItemCancelledEvent>(domainEvent);
+        Assert.Equal(sale.Id, itemCancelledEvent.SaleId);
+        Assert.Equal(item.Id, itemCancelledEvent.ItemId);
     }
 
     #endregion

@@ -13,7 +13,9 @@ public class CreateSaleProfile : Profile
     /// </summary>
     public CreateSaleProfile()
     {
-        CreateMap<CreateSaleCommand, Sale>();
+        // Sale só nasce via Sale.Create(...) (construtor privado + invariantes),
+        // então não existe mapeamento AutoMapper de Command -> Sale.
+        // A construção acontece manualmente no CreateSaleHandler.
         CreateMap<Sale, CreateSaleResult>();
     }
 }

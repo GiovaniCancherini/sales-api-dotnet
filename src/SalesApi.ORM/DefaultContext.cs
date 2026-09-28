@@ -1,4 +1,6 @@
-﻿using SalesApi.Domain.Entities;
+﻿using SalesApi.Domain.Common;
+using SalesApi.Domain.Entities;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
@@ -11,15 +13,43 @@ public class DefaultContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Sale> Sales { get; set; } = null!;
     public DbSet<SaleItem> SaleItems { get; set; } = null!;
+    private readonly IPublisher? _publisher;
 
-    public DefaultContext(DbContextOptions<DefaultContext> options) : base(options)
+    public DefaultContext(DbContextOptions<DefaultContext> options, IPublisher? publisher = null) : base(options)
     {
+        _publisher = publisher;
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // AggregateRoot.Events expõe IReadOnlyCollection<DomainEvent>, uma propriedade
+        // pública que o EF tentaria mapear como navegação/entidade. DomainEvent não é
+        // (e não deve ser) uma tabela, então tira ele do modelo de vez.
+        modelBuilder.Ignore<DomainEvent>();
+
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         base.OnModelCreating(modelBuilder);
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var aggregatesWithEvents = ChangeTracker.Entries<AggregateRoot>()
+            .Select(e => e.Entity)
+            .Where(a => a.Events.Count > 0)
+            .ToList();
+
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        foreach (var aggregate in aggregatesWithEvents)
+        {
+            var events = aggregate.Events.ToList();
+            aggregate.ClearEvents();
+            foreach (var domainEvent in events)
+                if (_publisher is not null)
+                    await _publisher.Publish(domainEvent, cancellationToken);
+        }
+
+        return result;
     }
 }
 public class YourDbContextFactory : IDesignTimeDbContextFactory<DefaultContext>
@@ -42,7 +72,7 @@ public class YourDbContextFactory : IDesignTimeDbContextFactory<DefaultContext>
 
         builder.UseNpgsql(
                connectionString,
-               b => b.MigrationsAssembly("SalesApi.WebApi")
+               b => b.MigrationsAssembly("SalesApi.ORM")
         );
 
         return new DefaultContext(builder.Options);

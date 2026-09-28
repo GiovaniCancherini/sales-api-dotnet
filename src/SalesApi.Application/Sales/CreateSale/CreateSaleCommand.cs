@@ -1,6 +1,4 @@
 ﻿using SalesApi.Common.Validation;
-using SalesApi.Domain.Entities;
-using SalesApi.Domain.Enums;
 using MediatR;
 
 namespace SalesApi.Application.Sales.CreateSale;
@@ -52,19 +50,14 @@ public class CreateSaleCommand : IRequest<CreateSaleResult>
     public string BranchName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the current status of the sale (e.g., Pending, Completed, Canceled).
+    /// Gets or sets the business code of the branch where the sale was made.
     /// </summary>
-    public SaleStatus Status { get; set; }
-
-    /// <summary>
-    /// Gets or sets the total amount of the sale.
-    /// </summary>
-    public decimal TotalAmount { get; set; }
+    public string BranchCode { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the collection of items included in the sale.
     /// </summary>
-    public ICollection<SaleItem> Items { get; set; } = new List<SaleItem>();
+    public ICollection<CreateSaleItemCommand> Items { get; set; } = new List<CreateSaleItemCommand>();
 
     public ValidationResultDetail Validate()
     {

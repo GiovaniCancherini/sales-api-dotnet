@@ -3,6 +3,7 @@ using MediatR;
 using FluentValidation;
 using SalesApi.Domain.Repositories;
 using SalesApi.Domain.Entities;
+using SalesApi.Domain.ValueObjects;
 using SalesApi.Common.Security;
 
 namespace SalesApi.Application.Sales.CreateSale;
@@ -43,7 +44,15 @@ public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, CreateSaleRe
             throw new ValidationException(validationResult.Errors);
         }
 
-        var sale = _mapper.Map<Sale>(command);
+        var customer = new ExternalCustomer(Guid.Parse(command.CustomerId), command.CustomerName);
+        var branch = new ExternalBranch(Guid.Parse(command.BranchId), command.BranchName, command.BranchCode);
+        var sale = Sale.Create(command.SaleNumber, customer, branch);
+
+        foreach (var item in command.Items)
+        {
+            var product = new ExternalProduct(Guid.Parse(item.ProductId), item.ProductName, item.ProductSku);
+            sale.AddItem(new SaleItem(product, item.Quantity, item.UnitPrice));
+        }
 
         var createdSale = await _saleRepository.CreateAsync(sale, cancellationToken);
         var result = _mapper.Map<CreateSaleResult>(createdSale);

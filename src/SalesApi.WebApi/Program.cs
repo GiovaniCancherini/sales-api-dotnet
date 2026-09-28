@@ -8,6 +8,8 @@ using SalesApi.ORM;
 using SalesApi.WebApi.Middleware;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 using Serilog;
 
 namespace SalesApi.WebApi;
@@ -27,7 +29,32 @@ public class Program
             builder.Services.AddEndpointsApiExplorer();
 
             builder.AddBasicHealthChecks();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(options =>
+            {
+                // Adds the "Authorize" lock button: without this, Swagger UI has
+                // no way to attach a Bearer token to a request, even though
+                // AddJwtAuthentication + UseAuthentication are already wired up.
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Paste the token returned by POST /api/Auth (no need to type \"Bearer \" first)."
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
 
             builder.Services.AddDbContext<DefaultContext>(options =>
                 options.UseNpgsql(
@@ -40,7 +67,15 @@ public class Program
 
             builder.RegisterDependencies();
 
-            builder.Services.AddAutoMapper(typeof(Program).Assembly, typeof(ApplicationLayer).Assembly);
+            // AppDomain.CurrentDomain.GetAssemblies() só enxerga assemblies já carregados
+            // na memória neste exato instante - nada antes desta linha força o assembly
+            // Application a carregar, então os Profiles de lá (ex.: CreateSaleProfile)
+            // ficam de fora silenciosamente. Aponta explícito pros assemblies que importam.
+            builder.Services.AddAutoMapper(
+                (System.Action<AutoMapper.IMapperConfigurationExpression>)null,
+                typeof(ApplicationLayer).Assembly,
+                typeof(Program).Assembly
+            );
                 
             builder.Services.AddMediatR(cfg =>
             {
@@ -53,7 +88,17 @@ public class Program
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             var app = builder.Build();
-            app.UseMiddleware<ValidationExceptionMiddleware>();
+
+            // Postgres roda sem volume no docker-compose: toda recriação dos containers
+            // apaga os dados e volta com o schema vazio. Aplica as migrations pendentes
+            // automaticamente no start, em vez de exigir "dotnet ef database update" manual
+            // toda vez (inclusive pra quem for rodar o projeto do zero).
+            using (var scope = app.Services.CreateScope())
+            {
+                scope.ServiceProvider.GetRequiredService<DefaultContext>().Database.Migrate();
+            }
+
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             if (app.Environment.IsDevelopment())
             {

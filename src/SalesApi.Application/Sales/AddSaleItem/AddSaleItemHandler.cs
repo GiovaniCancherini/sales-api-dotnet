@@ -1,0 +1,45 @@
+using SalesApi.Domain.Entities;
+using SalesApi.Domain.Repositories;
+using SalesApi.Domain.ValueObjects;
+using FluentValidation;
+using MediatR;
+
+namespace SalesApi.Application.Sales.AddSaleItem;
+
+/// <summary>
+/// Handler for processing AddSaleItemCommand requests. Loads the Sale, builds
+/// the new SaleItem from the command's flat data (no AutoMapper - SaleItem only
+/// exposes a constructor + private setters), then adds it via Sale.AddItem.
+/// </summary>
+public class AddSaleItemHandler : IRequestHandler<AddSaleItemCommand, AddSaleItemResponse>
+{
+    private readonly ISaleRepository _saleRepository;
+
+    public AddSaleItemHandler(ISaleRepository saleRepository)
+    {
+        _saleRepository = saleRepository;
+    }
+
+    public async Task<AddSaleItemResponse> Handle(AddSaleItemCommand request, CancellationToken cancellationToken)
+    {
+        var validator = new AddSaleItemValidator();
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var sale = await _saleRepository.GetByIdAsync(request.SaleId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Sale with ID {request.SaleId} not found");
+
+        var product = new ExternalProduct(Guid.Parse(request.Item.ProductId), request.Item.ProductName, request.Item.ProductSku);
+        var item = new SaleItem(product, request.Item.Quantity, request.Item.UnitPrice);
+
+        sale.AddItem(item);
+
+        await _saleRepository.UpdateAsync(sale, cancellationToken);
+
+        return new AddSaleItemResponse { Success = true };
+    }
+}

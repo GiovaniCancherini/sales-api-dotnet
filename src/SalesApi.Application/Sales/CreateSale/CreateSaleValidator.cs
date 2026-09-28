@@ -1,6 +1,4 @@
-﻿using SalesApi.Application.SaleItems.AddSaleItem;
-using SalesApi.Domain.Enums;
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalesApi.Application.Sales.CreateSale;
 
@@ -26,29 +24,51 @@ public class CreateSaleCommandValidator : AbstractValidator<CreateSaleCommand>
     public CreateSaleCommandValidator()
     {
         RuleFor(sale => sale.SaleNumber)
-            .NotEmpty().WithMessage("O número da venda não pode estar vazio.");
+            .NotEmpty().WithMessage("Sale number must not be empty.");
 
         RuleFor(sale => sale.Date)
-            .LessThanOrEqualTo(DateTime.Now).WithMessage("A data da venda não pode ser futura.");
+            .LessThanOrEqualTo(DateTime.Now).WithMessage("Sale date cannot be in the future.");
 
         RuleFor(sale => sale.CustomerId)
-            .NotEmpty().WithMessage("O ID do cliente é obrigatório.");
+            .NotEmpty().WithMessage("Customer ID is required.")
+            .Must(id => Guid.TryParse(id, out _)).WithMessage("Customer ID must be a valid GUID.");
 
         RuleFor(sale => sale.CustomerName)
-            .NotEmpty().WithMessage("O nome do cliente é obrigatório.")
-            .Length(3, 100).WithMessage("O nome do cliente deve ter entre 3 e 100 caracteres.");
+            .NotEmpty().WithMessage("Customer name is required.")
+            .Length(3, 100).WithMessage("Customer name must be between 3 and 100 characters.");
 
         RuleFor(sale => sale.BranchId)
-            .NotEmpty().WithMessage("O ID da filial é obrigatório.");
+            .NotEmpty().WithMessage("Branch ID is required.")
+            .Must(id => Guid.TryParse(id, out _)).WithMessage("Branch ID must be a valid GUID.");
 
-        RuleFor(sale => sale.Status)
-            .NotEqual(SaleStatus.Unknown).WithMessage("O status da venda não pode ser 'Unknown'.");
+        RuleFor(sale => sale.BranchName)
+            .NotEmpty().WithMessage("Branch name is required.");
 
-        RuleFor(sale => sale.TotalAmount)
-            .GreaterThan(0).WithMessage("O valor total da venda deve ser maior que zero.");
+        RuleFor(sale => sale.BranchCode)
+            .NotEmpty().WithMessage("Branch code is required.");
 
-        // Regra para validar a lista de itens e cada item individualmente
+        // Rule to validate the item list and each item individually
         RuleFor(sale => sale.Items)
-            .NotEmpty().WithMessage("A venda deve conter pelo menos um item.");
+            .NotEmpty().WithMessage("A sale must contain at least one item.");
+
+        RuleForEach(sale => sale.Items).ChildRules(item =>
+        {
+            item.RuleFor(i => i.ProductId)
+                .NotEmpty().WithMessage("Product ID is required.")
+                .Must(id => Guid.TryParse(id, out _)).WithMessage("Product ID must be a valid GUID.");
+
+            item.RuleFor(i => i.ProductName)
+                .NotEmpty().WithMessage("Product name is required.");
+
+            item.RuleFor(i => i.ProductSku)
+                .NotEmpty().WithMessage("Product SKU is required.");
+
+            item.RuleFor(i => i.Quantity)
+                .GreaterThan(0).WithMessage("Quantity must be greater than zero.")
+                .LessThanOrEqualTo(20).WithMessage("Cannot sell more than 20 identical items.");
+
+            item.RuleFor(i => i.UnitPrice)
+                .GreaterThan(0).WithMessage("Unit price must be greater than zero.");
+        });
     }
 }
