@@ -185,7 +185,22 @@ dotnet test SalesApi.sln
 
 - **Unit** covers the domain's business rules (discount tiers, aggregate invariants, domain events), the Application layer's handlers (success paths, not-found, validation failures, and business-specific edge cases), and an AutoMapper configuration test that builds the real mapper (rather than a mock) to catch broken or incomplete profiles.
 - **Integration** exercises `SaleRepository` against a real Postgres instance - specifically the EF Core Added-vs-Modified ambiguity around `SaleItem`'s client-generated key, which a mocked repository can never catch since it only ever manifested against a real database.
-- **Functional** boots the actual WebApi host (`WebApplicationFactory`) behind a real Postgres instance and drives it through plain HTTP: the discount tiers, the quantity ceiling, the full cancel/update/add-item flows, and the `{type, error, detail}` error shape for 400/401/404/409 - the same scenarios verified manually via curl during development, now automated.
+- **Functional** boots the actual WebApi host (`WebApplicationFactory`) behind a real Postgres instance and drives it through plain HTTP: the discount tiers, the quantity ceiling, the full cancel/update/add-item flows, list filtering/ordering/pagination, user updates, and the `{type, error, detail}` error shape for 400/401/404/409 - the same scenarios verified manually via curl during development, now automated.
+
+### Coverage report
+
+From the repository root, on Windows:
+
+```bash
+coverage-report.bat
+```
+
+It installs the `coverlet.console` and `reportgenerator` global tools if missing, runs all three tiers with coverage (so Docker must be running) and writes an HTML report to `TestResults/CoverageReport/index.html`. On Linux/macOS, the equivalent is:
+
+```bash
+dotnet test SalesApi.sln --collect:"XPlat Code Coverage" --settings coverlet.runsettings --results-directory ./TestResults
+reportgenerator -reports:"./TestResults/**/coverage.cobertura.xml" -targetdir:"./TestResults/CoverageReport" -reporttypes:Html
+```
 
 ## Project Structure
 
