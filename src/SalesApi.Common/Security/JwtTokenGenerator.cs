@@ -35,11 +35,12 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     /// 
     /// The token is valid for 8 hours from the moment of generation.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">Thrown when user or secret key is not provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when Jwt:SecretKey is not configured.</exception>
     public string GenerateToken(IUser user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:SecretKey"]);
+        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:SecretKey"]
+            ?? throw new InvalidOperationException("Jwt:SecretKey is not configured."));
 
         var claims = new[]
         {

@@ -71,7 +71,7 @@ public class Program
             // that only sees assemblies already loaded at this exact instant, so the
             // Application assembly's Profiles could be silently skipped.
             builder.Services.AddAutoMapper(
-                (System.Action<AutoMapper.IMapperConfigurationExpression>)null,
+                _ => { },
                 typeof(ApplicationLayer).Assembly,
                 typeof(Program).Assembly
             );
