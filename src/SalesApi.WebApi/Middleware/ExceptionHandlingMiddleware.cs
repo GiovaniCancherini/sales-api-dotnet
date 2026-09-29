@@ -58,7 +58,7 @@ namespace SalesApi.WebApi.Middleware
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
             {
                 // Unique constraint violated at the database (e.g. duplicate SaleNumber)
-                // that no Handler checked for up front. Detail is generic on purpose —
+                // that no Handler checked for up front. Detail is generic on purpose:
                 // never echo raw SQL/constraint details back to the client.
                 await WriteResponseAsync(context, StatusCodes.Status409Conflict,
                     "Conflict", "The request conflicts with the current state of the resource",

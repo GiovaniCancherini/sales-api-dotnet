@@ -162,7 +162,7 @@ public class SalesController : BaseController
     /// <summary>
     /// Lists sales, with pagination (_page/_size), ordering (_order) and
     /// filtering (customerName, status, _minTotalAmount/_maxTotalAmount,
-    /// _minDate/_maxDate) — see the README.
+    /// _minDate/_maxDate). See the README.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResponse<SaleListItemResponse>), StatusCodes.Status200OK)]
