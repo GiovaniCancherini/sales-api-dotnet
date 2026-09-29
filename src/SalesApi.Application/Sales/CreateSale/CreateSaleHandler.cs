@@ -47,13 +47,11 @@ public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, CreateSaleRe
         var customer = new ExternalCustomer(Guid.Parse(command.CustomerId), command.CustomerName);
         var branch = new ExternalBranch(Guid.Parse(command.BranchId), command.BranchName, command.BranchCode);
         var date = new DateTimeOffset(DateTime.SpecifyKind(command.Date, DateTimeKind.Utc));
-        var sale = Sale.Create(command.SaleNumber, customer, branch, date);
-
-        foreach (var item in command.Items)
-        {
-            var product = new ExternalProduct(Guid.Parse(item.ProductId), item.ProductName, item.ProductSku);
-            sale.AddItem(new SaleItem(product, item.Quantity, item.UnitPrice));
-        }
+        var items = command.Items.Select(item => new SaleItem(
+            new ExternalProduct(Guid.Parse(item.ProductId), item.ProductName, item.ProductSku),
+            item.Quantity,
+            item.UnitPrice));
+        var sale = Sale.Create(command.SaleNumber, customer, branch, date, items);
 
         var createdSale = await _saleRepository.CreateAsync(sale, cancellationToken);
         var result = _mapper.Map<CreateSaleResult>(createdSale);

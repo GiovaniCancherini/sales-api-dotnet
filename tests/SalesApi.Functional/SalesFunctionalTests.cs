@@ -268,9 +268,12 @@ public class SalesFunctionalTests
         // When
         (await client.DeleteAsync($"/api/Sales/{saleId}/items/{itemId}")).EnsureSuccessStatusCode();
 
-        // Then - events are appended synchronously after the Postgres commit, so they're already there
+        // Then - events are appended synchronously after the Postgres commit, so they're
+        // already there. Exactly these two: the initial items don't count as modifications.
         var events = await _fixture.SaleEvents.Find(e => e.SaleId == saleId).ToListAsync();
-        Assert.Contains(events, e => e.EventType == nameof(SaleCreatedEvent));
-        Assert.Contains(events, e => e.EventType == nameof(ItemCancelledEvent) && e.ItemId == itemId);
+        Assert.Equal(
+            new[] { nameof(SaleCreatedEvent), nameof(ItemCancelledEvent) },
+            events.OrderBy(e => e.OccurredOn).Select(e => e.EventType));
+        Assert.Equal(itemId, events.Single(e => e.EventType == nameof(ItemCancelledEvent)).ItemId);
     }
 }
