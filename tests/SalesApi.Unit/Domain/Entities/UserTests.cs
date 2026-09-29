@@ -119,10 +119,10 @@ public class UserTests
     }
 
     /// <summary>
-    /// Tests that registering a user raises UserRegisteredEvent.
+    /// Tests that registering a user raises UserRegisteredEvent carrying only the user's id.
     /// </summary>
-    [Fact(DisplayName = "Registering a user should raise UserRegisteredEvent")]
-    public void Given_User_When_Registered_Then_ShouldRaiseUserRegisteredEvent()
+    [Fact(DisplayName = "Registering a user should raise UserRegisteredEvent with the user's id")]
+    public void Given_User_When_Registered_Then_ShouldRaiseUserRegisteredEventWithId()
     {
         // Arrange
         var user = UserTestData.GenerateValidUser();
@@ -131,6 +131,8 @@ public class UserTests
         user.Register();
 
         // Assert
-        Assert.IsType<UserRegisteredEvent>(Assert.Single(user.Events));
+        var registered = Assert.IsType<UserRegisteredEvent>(Assert.Single(user.Events));
+        Assert.NotEqual(Guid.Empty, registered.UserId);
+        Assert.Equal(user.Id, registered.UserId);
     }
 }

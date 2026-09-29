@@ -13,9 +13,9 @@ public class CreateUserProfile : Profile
     /// </summary>
     public CreateUserProfile()
     {
-        // Id is DB-generated (gen_random_uuid()), CreatedAt/UpdatedAt/Events
-        // are set by User's own constructor/domain methods - none of them
-        // should ever come from client input.
+        // Id, CreatedAt/UpdatedAt and Events are set by User's own
+        // constructor/domain methods - none of them should ever come from
+        // client input.
         CreateMap<CreateUserCommand, User>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())

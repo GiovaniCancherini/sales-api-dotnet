@@ -83,6 +83,9 @@ public class User : AggregateRoot, IUser
     /// </summary>
     public User()
     {
+        // Generated here, like Sale and SaleItem, so the id exists before the insert
+        // (UserRegisteredEvent needs it). EF Core overwrites it when loading a user.
+        Id = Guid.NewGuid();
         CreatedAt = DateTime.UtcNow;
     }
 
@@ -93,7 +96,7 @@ public class User : AggregateRoot, IUser
     /// </summary>
     public void Register()
     {
-        Raise(new UserRegisteredEvent(this));
+        Raise(new UserRegisteredEvent(Id));
     }
 
     /// <summary>
