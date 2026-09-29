@@ -8,16 +8,20 @@ REM Clean and build solution
 dotnet restore SalesApi.sln
 dotnet build SalesApi.sln --configuration Release --no-restore
 
-REM Run tests with coverage
+REM Run tests with coverage. Uses the VSTest "XPlat Code Coverage" collector
+REM (coverlet.collector, already referenced by all three test projects) instead
+REM of the coverlet.msbuild /p:CollectCoverage properties, which only Unit's
+REM csproj understands - that mismatch used to silently drop Integration and
+REM Functional coverage entirely. Requires Docker running (Integration/
+REM Functional use Testcontainers).
 dotnet test SalesApi.sln --no-restore --verbosity normal ^
-/p:CollectCoverage=true ^
-/p:CoverletOutputFormat=cobertura ^
-/p:CoverletOutput=./TestResults/coverage.cobertura.xml ^
-/p:Exclude="[*]*.Program%2c[*]*.Startup%2c[*]*.Migrations.*"
+--collect:"XPlat Code Coverage" ^
+--settings:coverlet.runsettings ^
+--results-directory:./TestResults
 
 REM Generate coverage report
 reportgenerator ^
--reports:"./tests/**/TestResults/coverage.cobertura.xml" ^
+-reports:"./TestResults/**/coverage.cobertura.xml" ^
 -targetdir:"./TestResults/CoverageReport" ^
 -reporttypes:Html
 
