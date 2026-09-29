@@ -1,6 +1,7 @@
 using SalesApi.Application.Users.CreateUser;
 using SalesApi.Common.Security;
 using SalesApi.Domain.Entities;
+using SalesApi.Domain.Events;
 using SalesApi.Domain.Repositories;
 using SalesApi.Unit.Domain;
 using AutoMapper;
@@ -159,5 +160,29 @@ public class CreateUserHandlerTests
             c.Phone == command.Phone &&
             c.Status == command.Status &&
             c.Role == command.Role));
+    }
+
+    /// <summary>
+    /// Tests that the created user is registered, so UserRegisteredEvent is published on save.
+    /// </summary>
+    [Fact(DisplayName = "Given valid command When creating user Then the saved user raises UserRegisteredEvent")]
+    public async Task Handle_ValidRequest_RegistersUser()
+    {
+        // Given
+        var command = CreateUserHandlerTestData.GenerateValidCommand();
+        var user = new User { Username = command.Username, Email = command.Email };
+
+        _mapper.Map<User>(command).Returns(user);
+        _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
+            .Returns(user);
+        _passwordHasher.HashPassword(Arg.Any<string>()).Returns("hashedPassword");
+
+        // When
+        await _handler.Handle(command, CancellationToken.None);
+
+        // Then
+        await _userRepository.Received(1).CreateAsync(
+            Arg.Is<User>(u => u.Events.OfType<UserRegisteredEvent>().Any()),
+            Arg.Any<CancellationToken>());
     }
 }

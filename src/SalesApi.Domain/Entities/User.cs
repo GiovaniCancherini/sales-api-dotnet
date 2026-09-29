@@ -84,7 +84,15 @@ public class User : AggregateRoot, IUser
     public User()
     {
         CreatedAt = DateTime.UtcNow;
+    }
 
+    /// <summary>
+    /// Raises <see cref="UserRegisteredEvent"/>. Called once, when the user is first
+    /// created: not from the constructor, which EF Core also runs every time it
+    /// loads a user, so every later save would publish a false registration.
+    /// </summary>
+    public void Register()
+    {
         Raise(new UserRegisteredEvent(this));
     }
 

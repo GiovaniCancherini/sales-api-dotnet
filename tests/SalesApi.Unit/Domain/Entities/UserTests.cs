@@ -1,5 +1,6 @@
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Enums;
+using SalesApi.Domain.Events;
 using SalesApi.Unit.Domain.Entities.TestData;
 using Xunit;
 
@@ -102,5 +103,34 @@ public class UserTests
         // Assert
         Assert.False(result.IsValid);
         Assert.NotEmpty(result.Errors);
+    }
+
+    /// <summary>
+    /// Tests that constructing a user, which is also how EF Core loads one, raises no event.
+    /// </summary>
+    [Fact(DisplayName = "Constructing a user should not raise UserRegisteredEvent")]
+    public void Given_NewUserInstance_When_Constructed_Then_ShouldHaveNoEvents()
+    {
+        // Act
+        var user = new User();
+
+        // Assert
+        Assert.Empty(user.Events);
+    }
+
+    /// <summary>
+    /// Tests that registering a user raises UserRegisteredEvent.
+    /// </summary>
+    [Fact(DisplayName = "Registering a user should raise UserRegisteredEvent")]
+    public void Given_User_When_Registered_Then_ShouldRaiseUserRegisteredEvent()
+    {
+        // Arrange
+        var user = UserTestData.GenerateValidUser();
+
+        // Act
+        user.Register();
+
+        // Assert
+        Assert.IsType<UserRegisteredEvent>(Assert.Single(user.Events));
     }
 }
