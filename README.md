@@ -136,10 +136,13 @@ Flow to try the API from a fresh database:
 | DELETE | `/api/Sales/{id}/items/{itemId}` | Required | Cancels one item of a sale |
 
 `GET /api/Sales` supports:
-- `_page` / `_size` - pagination (defaults: 1 / 10)
+- `_page` / `_size` - pagination (defaults: 1 / 10, `_size` up to 100)
 - `_order` - e.g. `_order=totalAmount desc, saleNumber`
-- `customerName`, `status` - exact or wildcard (`*value*`) filters
+- `customerName` - case-insensitive exact or wildcard (`value*`, `*value`, `*value*`) filter
+- `status` - `Active` or `Cancelled`
 - `_minTotalAmount` / `_maxTotalAmount`, `_minDate` / `_maxDate` - range filters
+
+Filtering, ordering and pagination run in the database for both Sales and Users; only the requested page is loaded.
 
 Successful responses share a common envelope:
 

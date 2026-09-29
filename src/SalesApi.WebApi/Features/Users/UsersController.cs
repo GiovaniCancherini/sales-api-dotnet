@@ -128,7 +128,7 @@ public class UsersController : BaseController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of users</returns>
     [HttpGet()]
-    [ProducesResponseType(typeof(ApiResponseWithData<PaginatedResponse<ListUsersResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResponse<ListUsersResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ListUsers([FromQuery] ListUsersRequest request, CancellationToken cancellationToken = default)
     {
@@ -139,14 +139,10 @@ public class UsersController : BaseController
             return BadRequest(validationResult.Errors);
 
         var query = _mapper.Map<GetAllUserQuery>(request);
-        var users = await _mediator.Send(query, cancellationToken);
+        var (users, totalCount) = await _mediator.Send(query, cancellationToken);
 
-        // PaginatedList<T>.CreateAsync needs a real IQueryable backed by
-        // IAsyncQueryProvider; users here is an in-memory List, so page it directly.
-        var dtos = _mapper.Map<List<ListUsersResponse>>(users);
-        var totalCount = dtos.Count;
-        var pageItems = dtos.Skip((request.Page - 1) * request.Size).Take(request.Size).ToList();
-        var paginated = new PaginatedList<ListUsersResponse>(pageItems, totalCount, request.Page, request.Size);
+        var items = _mapper.Map<List<ListUsersResponse>>(users);
+        var paginated = new PaginatedList<ListUsersResponse>(items, totalCount, request.Page, request.Size);
 
         return OkPaginated(paginated, "List of users retrieved successfully");
     }

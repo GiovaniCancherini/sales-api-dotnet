@@ -5,6 +5,7 @@ using SalesApi.WebApi.Common;
 using SalesApi.WebApi.Features.Auth.AuthenticateUserFeature;
 using SalesApi.WebApi.Features.Users.CreateUser;
 using SalesApi.WebApi.Features.Users.GetUser;
+using SalesApi.WebApi.Features.Users.ListUsers;
 using SalesApi.WebApi.Features.Users.UpdateUser;
 using Xunit;
 
@@ -91,5 +92,34 @@ public class UsersFunctionalTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions.CaseInsensitive);
         Assert.Equal("ResourceNotFound", body?.Type);
+    }
+
+    [Fact(DisplayName = "Given several users When listing with a multi-field order and page size Then the database returns one page with the total count")]
+    public async Task Given_SeveralUsers_When_ListingWithOrderAndPageSize_Then_ReturnsOnePage()
+    {
+        // Given - the authenticated user plus two more guarantee at least three rows
+        using var client = await AuthHelper.CreateAuthenticatedClientAsync(_fixture.CreateClient());
+        for (var i = 0; i < 2; i++)
+        {
+            (await client.PostAsJsonAsync("/api/Users", new CreateUserRequest
+            {
+                Username = "listtest",
+                Email = $"list-{Guid.NewGuid():N}@test.com",
+                Password = "Test@12345",
+                Phone = "+15551234567",
+                Status = UserStatus.Active,
+                Role = UserRole.Customer
+            })).EnsureSuccessStatusCode();
+        }
+
+        // When - role and status are enums stored as strings, ordering by them must translate to SQL
+        var response = await client.GetAsync("/api/Users?_order=role%20desc,%20status,%20email&_page=1&_size=2");
+
+        // Then
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<PaginatedResponse<ListUsersResponse>>(JsonOptions.CaseInsensitive);
+        Assert.Equal(2, body!.Data!.Count());
+        Assert.True(body.TotalCount >= 3);
+        Assert.Equal((int)Math.Ceiling(body.TotalCount / 2.0), body.TotalPages);
     }
 }

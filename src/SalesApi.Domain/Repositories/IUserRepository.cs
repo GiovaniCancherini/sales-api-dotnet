@@ -32,11 +32,11 @@ public interface IUserRepository
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Retrieves all users
+    /// Returns one page of users plus the total count, both computed in the
+    /// database. <paramref name="shape"/> applies filtering and ordering.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The user if found, null otherwise</returns>
-    Task<List<User>?> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<(List<User> Items, int TotalCount)> ListAsync(
+        Func<IQueryable<User>, IQueryable<User>> shape, int page, int size, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a user from the repository

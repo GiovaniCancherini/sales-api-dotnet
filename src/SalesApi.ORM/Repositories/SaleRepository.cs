@@ -47,11 +47,14 @@ public class SaleRepository : ISaleRepository
             .FirstOrDefaultAsync(s => s.SaleNumber == saleNumber, cancellationToken);
     }
 
-    public async Task<List<Sale>?> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<(List<Sale> Items, int TotalCount)> ListAsync(
+        Func<IQueryable<Sale>, IQueryable<Sale>> shape, int page, int size, CancellationToken cancellationToken = default)
     {
-        return await _context.Sales
-            .Include(s => s.Items)
-            .ToListAsync(cancellationToken);
+        // No Include(Items): the list response only exposes sale-level columns.
+        var query = shape(_context.Sales.AsNoTracking());
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query.Skip((page - 1) * size).Take(size).ToListAsync(cancellationToken);
+        return (items, totalCount);
     }
 
     public async Task<Sale?> UpdateAsync(Sale sale, CancellationToken cancellationToken = default)

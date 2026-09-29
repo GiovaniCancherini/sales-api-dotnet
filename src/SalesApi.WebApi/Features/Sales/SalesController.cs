@@ -171,6 +171,8 @@ public class SalesController : BaseController
     {
         var query = new GetAllSaleQuery
         {
+            Page = request.Page,
+            Size = request.Size,
             Order = request.Order,
             CustomerName = request.CustomerName,
             Status = request.Status,
@@ -181,13 +183,8 @@ public class SalesController : BaseController
         };
 
         var result = await _mediator.Send(query, cancellationToken);
-        var mapped = _mapper.Map<List<SaleListItemResponse>>(result.Data);
-
-        // PaginatedList<T>.CreateAsync needs a real IQueryable backed by
-        // IAsyncQueryProvider; mapped here is an in-memory List, so page it directly.
-        var totalCount = mapped.Count;
-        var pageItems = mapped.Skip((request.Page - 1) * request.Size).Take(request.Size).ToList();
-        var paginated = new PaginatedList<SaleListItemResponse>(pageItems, totalCount, request.Page, request.Size);
+        var items = _mapper.Map<List<SaleListItemResponse>>(result.Data);
+        var paginated = new PaginatedList<SaleListItemResponse>(items, result.TotalCount, request.Page, request.Size);
 
         return OkPaginated(paginated, "Sales retrieved successfully");
     }

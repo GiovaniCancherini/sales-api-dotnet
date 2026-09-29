@@ -3,11 +3,13 @@ using MediatR;
 namespace SalesApi.Application.Sales.GetAllSale;
 
 /// <summary>
-/// Query for retrieving sales, with optional filtering and ordering.
-/// Pagination (_page/_size) is applied at the WebApi layer, same as ListUsers.
+/// Query for retrieving one page of sales, with optional filtering and ordering.
 /// </summary>
 public class GetAllSaleQuery : IRequest<GetAllSaleResult>
 {
+    public int Page { get; set; } = 1;
+    public int Size { get; set; } = 10;
+
     /// <summary>
     /// Ordering clause, e.g. "totalAmount desc, saleNumber" (comma-separated,
     /// each field optionally followed by asc/desc, default asc).

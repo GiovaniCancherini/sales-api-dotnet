@@ -12,6 +12,10 @@ public class GetAllUserValidator : AbstractValidator<GetAllUserQuery>
     /// </summary>
     public GetAllUserValidator()
     {
-        
+        RuleFor(x => x.Page)
+            .GreaterThanOrEqualTo(1).WithMessage("_page must be at least 1.");
+
+        RuleFor(x => x.Size)
+            .InclusiveBetween(1, 100).WithMessage("_size must be between 1 and 100.");
     }
 }
