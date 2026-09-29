@@ -89,10 +89,11 @@ public class Program
 
             var app = builder.Build();
 
-            // Postgres roda sem volume no docker-compose: toda recriação dos containers
-            // apaga os dados e volta com o schema vazio. Aplica as migrations pendentes
-            // automaticamente no start, em vez de exigir "dotnet ef database update" manual
-            // toda vez (inclusive pra quem for rodar o projeto do zero).
+            // Postgres runs without a volume in docker-compose: every container
+            // recreation wipes the data and comes back with an empty schema. Apply
+            // pending migrations automatically on startup instead of requiring a
+            // manual "dotnet ef database update" every time (including for anyone
+            // running the project from scratch).
             using (var scope = app.Services.CreateScope())
             {
                 scope.ServiceProvider.GetRequiredService<DefaultContext>().Database.Migrate();

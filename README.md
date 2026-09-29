@@ -141,18 +141,27 @@ Flow to try the API from a fresh database:
 - `customerName`, `status` - exact or wildcard (`*value*`) filters
 - `_minTotalAmount` / `_maxTotalAmount`, `_minDate` / `_maxDate` - range filters
 
-All responses follow the same envelope:
+Successful responses share a common envelope:
 
 ```json
 {
   "success": true,
   "message": "Sale retrieved successfully",
-  "data": { },
-  "errors": []
+  "data": { }
 }
 ```
 
-On failure, `success` is `false` and `errors` carries validation details when applicable. HTTP status codes are mapped from the underlying failure: `400` for validation errors, `401` for missing/invalid authentication, `404` for a missing resource, `409` for a state conflict (e.g. cancelling an already-cancelled sale), `500` for anything unexpected.
+Every non-2xx response - validation failures, missing resources, authentication/authorization errors, conflicts, or anything unexpected - follows a single error format instead:
+
+```json
+{
+  "type": "ValidationError",
+  "error": "Invalid input data",
+  "detail": "Customer name is required."
+}
+```
+
+`type` is a machine-readable identifier (`ValidationError`, `ResourceNotFound`, `AuthenticationError`, `AuthorizationError`, `Conflict`, `ServerError`), `error` a short human-readable summary, and `detail` the specifics of that occurrence. HTTP status codes: `400` for validation errors, `401` for missing/invalid authentication, `403` for an authenticated user without permission, `404` for a missing resource, `409` for a state conflict (e.g. cancelling an already-cancelled sale), `500` for anything unexpected.
 
 ## Running Tests
 

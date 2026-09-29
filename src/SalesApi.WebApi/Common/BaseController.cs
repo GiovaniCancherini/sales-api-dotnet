@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FluentValidation.Results;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace SalesApi.WebApi.Common;
@@ -34,10 +35,22 @@ public class BaseController : ControllerBase
         base.CreatedAtRoute(routeName, routeValues, new ApiResponseWithData<T> { Data = data, Success = true });
 
     protected IActionResult BadRequest(string message) =>
-        base.BadRequest(new ApiResponse { Message = message, Success = false });
+        base.BadRequest(new ApiErrorResponse { Type = "ValidationError", Error = "Invalid input data", Detail = message });
+
+    // Matches callers that pass a FluentValidation ValidationResult.Errors directly
+    // (e.g. `return BadRequest(validationResult.Errors);`) - without this overload,
+    // those calls bind to ControllerBase's own BadRequest(object), returning the
+    // raw ValidationFailure list instead of the standard error shape.
+    protected IActionResult BadRequest(IEnumerable<ValidationFailure> errors) =>
+        base.BadRequest(new ApiErrorResponse
+        {
+            Type = "ValidationError",
+            Error = "Invalid input data",
+            Detail = string.Join(" ", errors.Select(e => e.ErrorMessage))
+        });
 
     protected IActionResult NotFound(string message = "Resource not found") =>
-        base.NotFound(new ApiResponse { Message = message, Success = false });
+        base.NotFound(new ApiErrorResponse { Type = "ResourceNotFound", Error = "Resource not found", Detail = message });
 
     protected IActionResult OkPaginated<T>(PaginatedList<T> pagedList, string message = "") =>
             // base.Ok, not Ok(...): PaginatedResponse<T> already IS an

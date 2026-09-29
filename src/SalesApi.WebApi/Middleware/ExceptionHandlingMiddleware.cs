@@ -1,4 +1,3 @@
-using SalesApi.Common.Validation;
 using SalesApi.WebApi.Common;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -9,9 +8,10 @@ namespace SalesApi.WebApi.Middleware
 {
     /// <summary>
     /// Translates exceptions thrown by Handlers (and by EF/Postgres) into proper
-    /// HTTP status codes and the standard ApiResponse shape, instead of letting
-    /// them fall through to the default dev exception page (raw stack trace, 500,
-    /// and outside Development an empty unhelpful 500).
+    /// HTTP status codes and the ApiErrorResponse shape documented in the README
+    /// ({type, error, detail}), instead of letting them fall through to the
+    /// default dev exception page (raw stack trace, 500, and outside
+    /// Development an empty unhelpful 500).
     /// </summary>
     public class ExceptionHandlingMiddleware
     {
@@ -32,31 +32,36 @@ namespace SalesApi.WebApi.Middleware
             }
             catch (ValidationException ex)
             {
-                await WriteResponseAsync(context, StatusCodes.Status400BadRequest, "Validation Failed",
-                    ex.Errors.Select(error => (ValidationErrorDetail)error));
+                var detail = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+                await WriteResponseAsync(context, StatusCodes.Status400BadRequest,
+                    "ValidationError", "Invalid input data", detail);
             }
             catch (KeyNotFoundException ex)
             {
                 // Handlers throw this for "Sale/User/SaleItem with ID X not found".
-                await WriteResponseAsync(context, StatusCodes.Status404NotFound, ex.Message);
+                await WriteResponseAsync(context, StatusCodes.Status404NotFound,
+                    "ResourceNotFound", "Resource not found", ex.Message);
             }
             catch (UnauthorizedAccessException ex)
             {
                 // AuthenticateUserHandler: invalid credentials / inactive user.
-                await WriteResponseAsync(context, StatusCodes.Status401Unauthorized, ex.Message);
+                await WriteResponseAsync(context, StatusCodes.Status401Unauthorized,
+                    "AuthenticationError", "Authentication failed", ex.Message);
             }
             catch (InvalidOperationException ex)
             {
                 // CreateUserHandler: "User with email X already exists" and similar
                 // business-rule conflicts a Handler already checked for explicitly.
-                await WriteResponseAsync(context, StatusCodes.Status409Conflict, ex.Message);
+                await WriteResponseAsync(context, StatusCodes.Status409Conflict,
+                    "Conflict", "The request conflicts with the current state of the resource", ex.Message);
             }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
             {
                 // Unique constraint violated at the database (e.g. duplicate SaleNumber)
-                // that no Handler checked for up front. Message is generic on purpose —
+                // that no Handler checked for up front. Detail is generic on purpose —
                 // never echo raw SQL/constraint details back to the client.
                 await WriteResponseAsync(context, StatusCodes.Status409Conflict,
+                    "Conflict", "The request conflicts with the current state of the resource",
                     "A record with the same unique value already exists.");
             }
             catch (Exception ex)
@@ -64,24 +69,25 @@ namespace SalesApi.WebApi.Middleware
                 _logger.LogError(ex, "Unhandled exception processing {Method} {Path}",
                     context.Request.Method, context.Request.Path);
                 await WriteResponseAsync(context, StatusCodes.Status500InternalServerError,
-                    "An unexpected error occurred.");
+                    "ServerError", "An unexpected error occurred", "An unexpected error occurred.");
             }
         }
 
         private static Task WriteResponseAsync(
             HttpContext context,
             int statusCode,
-            string message,
-            IEnumerable<ValidationErrorDetail>? errors = null)
+            string type,
+            string error,
+            string detail)
         {
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = statusCode;
 
-            var response = new ApiResponse
+            var response = new ApiErrorResponse
             {
-                Success = false,
-                Message = message,
-                Errors = errors ?? []
+                Type = type,
+                Error = error,
+                Detail = detail
             };
 
             var jsonOptions = new JsonSerializerOptions
