@@ -27,7 +27,7 @@ public class CreateSaleCommandValidator : AbstractValidator<CreateSaleCommand>
             .NotEmpty().WithMessage("Sale number must not be empty.");
 
         RuleFor(sale => sale.Date)
-            .LessThanOrEqualTo(DateTime.Now).WithMessage("Sale date cannot be in the future.");
+            .LessThanOrEqualTo(DateTime.UtcNow).WithMessage("Sale date cannot be in the future.");
 
         RuleFor(sale => sale.CustomerId)
             .NotEmpty().WithMessage("Customer ID is required.")

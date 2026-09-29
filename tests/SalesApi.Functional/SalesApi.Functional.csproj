@@ -20,12 +20,15 @@
     </PackageReference>
     <PackageReference Include="Bogus" Version="35.6.3" />
     <PackageReference Include="NSubstitute" Version="5.3.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SalesApi.Domain\SalesApi.Domain.csproj" />
     <ProjectReference Include="..\..\src\SalesApi.Application\SalesApi.Application.csproj" />
     <ProjectReference Include="..\..\src\SalesApi.ORM\SalesApi.ORM.csproj" />
+    <ProjectReference Include="..\..\src\SalesApi.WebApi\SalesApi.WebApi.csproj" />
   </ItemGroup>
 
 </Project>

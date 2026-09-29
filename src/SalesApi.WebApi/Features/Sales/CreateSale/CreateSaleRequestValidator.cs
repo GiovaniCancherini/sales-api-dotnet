@@ -10,7 +10,7 @@ public class CreateSaleRequestValidator : AbstractValidator<CreateSaleRequest>
     public CreateSaleRequestValidator()
     {
         RuleFor(sale => sale.SaleNumber).NotEmpty();
-        RuleFor(sale => sale.Date).LessThanOrEqualTo(DateTime.Now);
+        RuleFor(sale => sale.Date).LessThanOrEqualTo(DateTime.UtcNow);
 
         RuleFor(sale => sale.CustomerId)
             .NotEmpty()

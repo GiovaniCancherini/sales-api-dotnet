@@ -7,9 +7,7 @@ namespace SalesApi.Application.Sales.GetAllSale;
 
 /// <summary>
 /// Handler for processing GetAllSaleQuery requests: filters and orders sales
-/// in memory (ISaleRepository.GetAllAsync already materializes everything,
-/// same limitation ListUsers has for Users - not fixing the repository
-/// contract here, out of scope for adding filter/order).
+/// in memory, since ISaleRepository.GetAllAsync already materializes everything.
 /// </summary>
 public class GetAllSaleHandler : IRequestHandler<GetAllSaleQuery, GetAllSaleResult>
 {

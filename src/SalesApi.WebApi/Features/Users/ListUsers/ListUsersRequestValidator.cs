@@ -12,7 +12,7 @@ public class ListUsersRequestValidator : AbstractValidator<ListUsersRequest>
     /// </summary>
     public ListUsersRequestValidator()
     {
-        // Caso não tenha filtros obrigatórios, pode deixar vazio por enquanto
-        // Exemplo futuro: RuleFor(x => x.Name).MaximumLength(100);
+        // No required fields for this request - Page/Size/Order are all
+        // optional with sane defaults.
     }
 }

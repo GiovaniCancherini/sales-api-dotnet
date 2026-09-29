@@ -64,7 +64,6 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
                 .IsRequired();
         });
 
-        // -> relacionamento com SaleItems
         builder.HasMany(s => s.Items)
             .WithOne()
             .HasForeignKey("SaleId")

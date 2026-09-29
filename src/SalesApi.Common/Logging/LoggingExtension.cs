@@ -29,11 +29,8 @@ public static class LoggingExtension
     /// </summary>
     static readonly Func<LogEvent, bool> _filterPredicate = exclusionPredicate =>
     {
-        // ByExcluding drops the event when this returns true. The original
-        // check here was inverted: "!= Information" was true for every
-        // Warning/Error/Fatal, so this silently dropped every non-Information
-        // log in the app, always - nobody could ever see an exception logged.
-        // Only Information-level noise (200s on /health) should ever be excluded.
+        // ByExcluding drops the event when this returns true. Only
+        // Information-level noise (200s on /health) should ever be excluded.
         if (exclusionPredicate.Level != LogEventLevel.Information) return false;
 
         exclusionPredicate.Properties.TryGetValue("StatusCode", out var statusCode);
@@ -51,7 +48,7 @@ public static class LoggingExtension
     /// <param name="builder">The <see cref="WebApplicationBuilder" /> to add services to.</param>
     /// <returns>A <see cref="WebApplicationBuilder"/> that can be used to further configure the API services.</returns>
     /// <remarks>
-    /// <para>Logging output are diferents on Debug and Release modes.</para>
+    /// <para>Logging output differs between Debug and Release modes.</para>
     /// </remarks> 
     public static WebApplicationBuilder AddDefaultLogging(this WebApplicationBuilder builder)
     {
@@ -92,7 +89,7 @@ public static class LoggingExtension
         return builder;
     }
 
-    /// <summary>Adds middleware for Swagger documetation generation.</summary>
+    /// <summary>Adds middleware for Swagger documentation generation.</summary>
     /// <param name="app">The <see cref="WebApplication"/> instance this method extends.</param>
     /// <returns>The <see cref="WebApplication"/> for Swagger documentation.</returns>
     public static WebApplication UseDefaultLogging(this WebApplication app)

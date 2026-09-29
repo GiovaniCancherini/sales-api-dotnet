@@ -9,7 +9,6 @@ namespace SalesApi.Application.Sales.UpdateSale;
 /// <summary>
 /// Handler for processing UpdateSaleCommand requests. Loads the Sale, builds
 /// SaleItem entities directly from the command's flat data (no AutoMapper -
-/// same construction issue CreateSaleHandler had would apply here too, since
 /// SaleItem only exposes a constructor + private setters), then replaces the
 /// item list via Sale.ReplaceItems.
 /// </summary>

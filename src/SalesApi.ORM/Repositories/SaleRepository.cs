@@ -56,34 +56,9 @@ public class SaleRepository : ISaleRepository
 
     public async Task<Sale?> UpdateAsync(Sale sale, CancellationToken cancellationToken = default)
     {
-        // No explicit Sales.Update() call: every caller today loads the Sale via
-        // GetByIdAsync first (same DbContext), so it's already tracked.
-        // DbSet.Update() marks the WHOLE reachable graph as Modified,
-        // including brand-new SaleItems that should be Added (insert).
-        //
-        // That alone isn't enough though: SaleItem's constructor assigns
-        // Id = Guid.NewGuid() itself, so a new item already has a non-default
-        // key by the time EF's change detection discovers it in the Items
-        // collection. EF then assumes it might already exist in the DB and
-        // marks it Modified instead of Added, producing an UPDATE that
-        // matches 0 rows (DbUpdateConcurrencyException).
-        //
-        // Checking Entry(item).State == Detached to spot new items is NOT
-        // reliable: it only works when the whole collection was replaced
-        // (Clear + AddRange, as ReplaceItems does). When an item is appended
-        // to an otherwise-unchanged tracked collection (AddItem's _items.Add),
-        // EF's ambiguous key heuristic kicks in immediately and the new item
-        // is already Modified by the time this method sees it - Detached
-        // never happens.
-        //
-        // Checking Entry(item).State == Unchanged doesn't work either: a
-        // genuinely pre-existing item that WAS legitimately modified (e.g.
-        // CancelItem flipping IsCancelled) is no longer Unchanged, so it'd be
-        // wrongly treated as new and re-Added on top of its own row.
-        //
-        // The only unambiguous signal is what's actually already in the
-        // database - so ask it directly rather than trust EF's in-memory
-        // guess about a client-generated key it never assigned itself.
+        // SaleItem generates its own Id (Guid.NewGuid()) before being tracked, so
+        // EF's Added-vs-Modified/Unchanged guess for it is unreliable in either
+        // direction. Query what's actually persisted instead of trusting that guess.
         var persistedIds = (await _context.Sales
             .Where(s => s.Id == sale.Id)
             .SelectMany(s => s.Items)
@@ -95,9 +70,8 @@ public class SaleRepository : ISaleRepository
         {
             if (!persistedIds.Contains(item.Id))
             {
-                // SaleItems.Add(item) (rather than poking .State by hand)
-                // also correctly cascades Added to Product, its table-split
-                // OwnsOne - manual state assignment left ProductId NULL.
+                // Add(item), not a manual EntityState assignment: this also
+                // cascades Added to the owned Product (table-split OwnsOne).
                 _context.SaleItems.Add(item);
             }
         }

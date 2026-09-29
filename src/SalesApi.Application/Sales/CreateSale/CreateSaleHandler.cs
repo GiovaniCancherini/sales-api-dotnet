@@ -46,7 +46,8 @@ public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, CreateSaleRe
 
         var customer = new ExternalCustomer(Guid.Parse(command.CustomerId), command.CustomerName);
         var branch = new ExternalBranch(Guid.Parse(command.BranchId), command.BranchName, command.BranchCode);
-        var sale = Sale.Create(command.SaleNumber, customer, branch);
+        var date = new DateTimeOffset(DateTime.SpecifyKind(command.Date, DateTimeKind.Utc));
+        var sale = Sale.Create(command.SaleNumber, customer, branch, date);
 
         foreach (var item in command.Items)
         {

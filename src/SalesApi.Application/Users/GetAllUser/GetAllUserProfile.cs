@@ -13,10 +13,8 @@ public class GetAllUserProfile : Profile
     /// </summary>
     public GetAllUserProfile()
     {
-        // Was CreateMap<User, List<GetAllUserResult>>() - mapping a single User
-        // to a List<T> is meaningless; AutoMapper needs the item-to-item map
-        // (User -> GetAllUserResult) and handles List<User> -> List<GetAllUserResult>
-        // on its own. Same Username/Name mismatch as GetUserProfile.
+        // Item-to-item map: AutoMapper handles List<User> -> List<GetAllUserResult>
+        // on its own from this, no separate List<T> mapping needed.
         CreateMap<User, GetAllUserResult>()
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Username));
     }

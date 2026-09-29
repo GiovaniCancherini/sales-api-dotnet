@@ -31,10 +31,8 @@ namespace SalesApi.ORM.Migrations
                     table.PrimaryKey("PK_Sales", x => x.Id);
                 });
 
-            // A tabela "Users" já existe (criada por 20241014011203_InitialMigrations).
-            // Essa migration só precisa acrescentar as duas colunas novas do entity,
-            // não recriar a tabela inteira (era CreateTable, o que quebra em banco
-            // que já rodou a migration anterior - todo banco de verdade).
+            // "Users" already exists (created by 20241014011203_InitialMigrations) -
+            // this migration only adds the entity's two new columns.
             migrationBuilder.AddColumn<DateTime>(
                 name: "CreatedAt",
                 table: "Users",

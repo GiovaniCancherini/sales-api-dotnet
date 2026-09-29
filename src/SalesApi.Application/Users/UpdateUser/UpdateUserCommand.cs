@@ -23,7 +23,7 @@ public class UpdateUserCommand : IRequest<UpdateUserResponse>
     /// <summary>
     /// The unique identifier of the user to update
     /// </summary>
-    public Guid Id { get; }
+    public Guid Id { get; set; }
 
     /// <summary>
     /// Gets or sets the username of the user to be updated.
