@@ -34,7 +34,7 @@ namespace SalesApi.Domain.ValueObjects
         /// </summary>
         public string Code { get; }
 
-        private ExternalBranch() { } // Required by EF Core
+        private ExternalBranch() { Name = null!; Code = null!; } // Required by EF Core, which fills in the real values
 
         /// <summary>
         /// Creates a new instance of <see cref="ExternalBranch"/>.

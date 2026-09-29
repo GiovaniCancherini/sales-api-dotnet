@@ -30,9 +30,12 @@ public interface ISaleRepository
     Task<Sale?> GetBySaleNumberAsync(string saleNumber, CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Retrieves all sales.
+    /// Returns one page of sales plus the total match count, both computed in
+    /// the database. <paramref name="shape"/> applies filtering and ordering.
+    /// Items are not loaded.
     /// </summary>
-    Task<List<Sale>?> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<(List<Sale> Items, int TotalCount)> ListAsync(
+        Func<IQueryable<Sale>, IQueryable<Sale>> shape, int page, int size, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates a sale from the repository.

@@ -18,11 +18,6 @@ public class Sale : AggregateRoot
     private readonly List<SaleItem> _items = new();
 
     /// <summary>
-    /// Gets the unique identifier of the sale.
-    /// </summary>
-    public Guid Id { get; private set; }
-
-    /// <summary>
     /// Gets the business sale number.
     /// This value is generated externally and must be unique.
     /// </summary>

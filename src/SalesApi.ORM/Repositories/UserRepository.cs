@@ -57,13 +57,15 @@ public class UserRepository : IUserRepository
     }
 
     /// <summary>
-    /// Retrieves all users
+    /// Returns one page of users plus the total count, both computed in the database
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The user if found, null otherwise</returns>
-    public async Task<List<User>?> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<(List<User> Items, int TotalCount)> ListAsync(
+        Func<IQueryable<User>, IQueryable<User>> shape, int page, int size, CancellationToken cancellationToken = default)
     {
-        return await _context.Users.ToListAsync(cancellationToken);
+        var query = shape(_context.Users.AsNoTracking());
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query.Skip((page - 1) * size).Take(size).ToListAsync(cancellationToken);
+        return (items, totalCount);
     }
 
     /// <summary>

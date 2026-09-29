@@ -1,13 +1,15 @@
 using FluentValidation;
 using MediatR;
+using SalesApi.Application.Common;
 using SalesApi.Domain.Entities;
+using SalesApi.Domain.Enums;
 using SalesApi.Domain.Repositories;
 
 namespace SalesApi.Application.Sales.GetAllSale;
 
 /// <summary>
-/// Handler for processing GetAllSaleQuery requests: filters and orders sales
-/// in memory, since ISaleRepository.GetAllAsync already materializes everything.
+/// Handler for processing GetAllSaleQuery requests: filtering, ordering and
+/// pagination are composed as a query and run in the database.
 /// </summary>
 public class GetAllSaleHandler : IRequestHandler<GetAllSaleQuery, GetAllSaleResult>
 {
@@ -28,88 +30,90 @@ public class GetAllSaleHandler : IRequestHandler<GetAllSaleQuery, GetAllSaleResu
             throw new ValidationException(validationResult.Errors);
         }
 
-        var sales = await _saleRepository.GetAllAsync(cancellationToken) ?? new List<Sale>();
-        IEnumerable<Sale> filtered = sales;
+        var (sales, totalCount) = await _saleRepository.ListAsync(
+            query => ApplyOrder(ApplyFilters(query, request), request.Order),
+            request.Page, request.Size, cancellationToken);
 
+        return new GetAllSaleResult { Data = sales, TotalCount = totalCount };
+    }
+
+    private static IQueryable<Sale> ApplyFilters(IQueryable<Sale> query, GetAllSaleQuery request)
+    {
         if (!string.IsNullOrWhiteSpace(request.CustomerName))
-            filtered = ApplyStringFilter(filtered, s => s.Customer.Name, request.CustomerName);
+            query = ApplyCustomerNameFilter(query, request.CustomerName);
 
         if (!string.IsNullOrWhiteSpace(request.Status))
-            filtered = filtered.Where(s => string.Equals(s.Status.ToString(), request.Status, StringComparison.OrdinalIgnoreCase));
+        {
+            var status = Enum.Parse<SaleStatus>(request.Status, ignoreCase: true);
+            query = query.Where(s => s.Status == status);
+        }
 
         if (request.MinTotalAmount.HasValue)
-            filtered = filtered.Where(s => s.TotalAmount >= request.MinTotalAmount.Value);
+        {
+            var min = request.MinTotalAmount.Value;
+            query = query.Where(s => s.TotalAmount >= min);
+        }
 
         if (request.MaxTotalAmount.HasValue)
-            filtered = filtered.Where(s => s.TotalAmount <= request.MaxTotalAmount.Value);
+        {
+            var max = request.MaxTotalAmount.Value;
+            query = query.Where(s => s.TotalAmount <= max);
+        }
 
+        // Whole UTC days: _minDate from midnight, _maxDate up to (not including) the next midnight.
         if (request.MinDate.HasValue)
-            filtered = filtered.Where(s => s.Date.Date >= request.MinDate.Value.Date);
+        {
+            var from = UtcMidnight(request.MinDate.Value);
+            query = query.Where(s => s.Date >= from);
+        }
 
         if (request.MaxDate.HasValue)
-            filtered = filtered.Where(s => s.Date.Date <= request.MaxDate.Value.Date);
+        {
+            var until = UtcMidnight(request.MaxDate.Value).AddDays(1);
+            query = query.Where(s => s.Date < until);
+        }
 
-        return new GetAllSaleResult { Data = ApplyOrder(filtered, request.Order).ToList() };
+        return query;
     }
 
     /// <summary>
-    /// Matches the API's convention: "value*" (starts with), "*value"
-    /// (ends with), "*value*" (contains), or exact match with no asterisk.
+    /// Matches the API's convention, case-insensitively: "value*" (starts with),
+    /// "*value" (ends with), "*value*" (contains), or exact match with no asterisk.
     /// </summary>
-    private static IEnumerable<Sale> ApplyStringFilter(IEnumerable<Sale> source, Func<Sale, string> selector, string filter)
+    private static IQueryable<Sale> ApplyCustomerNameFilter(IQueryable<Sale> query, string filter)
     {
-        if (filter.Length > 1 && filter.StartsWith('*') && filter.EndsWith('*'))
+        var value = filter.Trim('*').ToLowerInvariant();
+
+        return (filter.StartsWith('*'), filter.EndsWith('*')) switch
         {
-            var value = filter.Trim('*');
-            return source.Where(s => selector(s).Contains(value, StringComparison.OrdinalIgnoreCase));
-        }
-        if (filter.StartsWith('*'))
-        {
-            var value = filter.TrimStart('*');
-            return source.Where(s => selector(s).EndsWith(value, StringComparison.OrdinalIgnoreCase));
-        }
-        if (filter.EndsWith('*'))
-        {
-            var value = filter.TrimEnd('*');
-            return source.Where(s => selector(s).StartsWith(value, StringComparison.OrdinalIgnoreCase));
-        }
-        return source.Where(s => string.Equals(selector(s), filter, StringComparison.OrdinalIgnoreCase));
+            (true, true) => query.Where(s => s.Customer.Name.ToLower().Contains(value)),
+            (true, false) => query.Where(s => s.Customer.Name.ToLower().EndsWith(value)),
+            (false, true) => query.Where(s => s.Customer.Name.ToLower().StartsWith(value)),
+            _ => query.Where(s => s.Customer.Name.ToLower() == value)
+        };
     }
 
-    /// <summary>
-    /// Parses "field desc, field2, field3 asc" - comma-separated fields,
-    /// each optionally followed by asc/desc (default asc), matching
-    /// the API's _order example.
-    /// </summary>
-    private static IEnumerable<Sale> ApplyOrder(IEnumerable<Sale> source, string? order)
+    private static IQueryable<Sale> ApplyOrder(IQueryable<Sale> query, string? order)
     {
-        if (string.IsNullOrWhiteSpace(order))
-            return source.OrderBy(s => s.SaleNumber);
+        IOrderedQueryable<Sale>? ordered = null;
 
-        IOrderedEnumerable<Sale>? ordered = null;
-
-        foreach (var clause in order.Trim('"').Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var (field, descending) in QueryOrdering.Parse(order))
         {
-            var parts = clause.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var field = parts[0];
-            var descending = parts.Length > 1 && parts[1].Equals("desc", StringComparison.OrdinalIgnoreCase);
-
-            Func<Sale, object> keySelector = field.ToLowerInvariant() switch
+            ordered = field switch
             {
-                "salenumber" => s => s.SaleNumber,
-                "totalamount" => s => s.TotalAmount,
-                "date" => s => s.Date,
-                "status" => s => s.Status.ToString(),
-                "customername" => s => s.Customer.Name,
-                "branchname" => s => s.Branch.Name,
-                _ => s => s.SaleNumber
+                "totalamount" => QueryOrdering.Then(query, ordered, s => s.TotalAmount, descending),
+                "date" => QueryOrdering.Then(query, ordered, s => s.Date, descending),
+                "status" => QueryOrdering.Then(query, ordered, s => s.Status, descending),
+                "customername" => QueryOrdering.Then(query, ordered, s => s.Customer.Name, descending),
+                "branchname" => QueryOrdering.Then(query, ordered, s => s.Branch.Name, descending),
+                _ => QueryOrdering.Then(query, ordered, s => s.SaleNumber, descending)
             };
-
-            ordered = ordered is null
-                ? (descending ? source.OrderByDescending(keySelector) : source.OrderBy(keySelector))
-                : (descending ? ordered.ThenByDescending(keySelector) : ordered.ThenBy(keySelector));
         }
 
-        return ordered ?? source;
+        // SaleNumber is unique, so it also breaks ties and keeps pages stable.
+        return ordered?.ThenBy(s => s.SaleNumber) ?? query.OrderBy(s => s.SaleNumber);
     }
+
+    private static DateTimeOffset UtcMidnight(DateTime date) =>
+        new(DateTime.SpecifyKind(date.Date, DateTimeKind.Utc));
 }

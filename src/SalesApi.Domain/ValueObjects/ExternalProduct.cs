@@ -26,7 +26,7 @@ namespace SalesApi.Domain.ValueObjects
         /// </summary>
         public string SKU { get; }
         
-        private ExternalProduct() { } // Required by EF Core
+        private ExternalProduct() { Name = null!; SKU = null!; } // Required by EF Core, which fills in the real values
 
         public ExternalProduct(Guid id, string name, string sku)
         {

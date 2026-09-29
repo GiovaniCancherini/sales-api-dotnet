@@ -8,7 +8,12 @@ namespace SalesApi.Application.Sales.GetAllSale;
 public class GetAllSaleResult
 {
     /// <summary>
-    /// Gets or sets the list of sales retrieved from the operation.
+    /// The sales in the requested page, without their items.
     /// </summary>
     public List<Sale> Data { get; set; } = new List<Sale>();
+
+    /// <summary>
+    /// Total number of sales matching the filters, across all pages.
+    /// </summary>
+    public int TotalCount { get; set; }
 }

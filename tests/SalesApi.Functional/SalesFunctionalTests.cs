@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using SalesApi.WebApi.Common;
 using SalesApi.WebApi.Features.Sales.CreateSale;
+using SalesApi.WebApi.Features.Sales.GetAllSale;
 using SalesApi.WebApi.Features.Sales.GetBySaleId;
 using SalesApi.WebApi.Features.Sales.UpdateSale;
 using Xunit;
@@ -207,5 +208,45 @@ public class SalesFunctionalTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions.CaseInsensitive);
         Assert.Equal("ResourceNotFound", body?.Type);
+    }
+
+    [Fact(DisplayName = "Given three sales for one customer When listing with a name filter, order and page size Then the database returns the requested page in order")]
+    public async Task Given_FilterOrderAndPageSize_When_Listing_Then_ReturnsRequestedPageInOrder()
+    {
+        // Given - a customer name no other test uses, so the filter isolates these three sales
+        using var client = await AuthHelper.CreateAuthenticatedClientAsync(_fixture.CreateClient());
+        var marker = Guid.NewGuid().ToString("N");
+        foreach (var unitPrice in new[] { 10m, 30m, 20m })
+        {
+            var request = ValidSaleRequest(ValidItem(1, unitPrice));
+            request.CustomerName = $"List Customer {marker}";
+            (await client.PostAsJsonAsync("/api/Sales", request)).EnsureSuccessStatusCode();
+        }
+
+        // When - the upper-case filter checks the match is case-insensitive in SQL too
+        var response = await client.GetAsync(
+            $"/api/Sales?customerName=*{marker.ToUpperInvariant()}*&_order=totalAmount%20desc&_page=1&_size=2");
+
+        // Then
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<PaginatedResponse<SaleListItemResponse>>(JsonOptions.CaseInsensitive);
+        Assert.Equal(3, body!.TotalCount);
+        Assert.Equal(2, body.TotalPages);
+        Assert.Equal(new[] { 30m, 20m }, body.Data!.Select(s => s.TotalAmount));
+    }
+
+    [Fact(DisplayName = "Given page zero When listing sales Then returns 400 ValidationError instead of a database error")]
+    public async Task Given_PageZero_When_Listing_Then_Returns400()
+    {
+        // Given
+        using var client = await AuthHelper.CreateAuthenticatedClientAsync(_fixture.CreateClient());
+
+        // When
+        var response = await client.GetAsync("/api/Sales?_page=0");
+
+        // Then
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions.CaseInsensitive);
+        Assert.Equal("ValidationError", body?.Type);
     }
 }

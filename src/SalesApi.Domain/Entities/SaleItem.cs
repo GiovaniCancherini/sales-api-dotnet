@@ -16,11 +16,6 @@ namespace SalesApi.Domain.Entities;
 public class SaleItem : BaseEntity
 {
     /// <summary>
-    /// Gets the unique identifier of the sale item.
-    /// </summary>
-    public Guid Id { get; private set; }
-
-    /// <summary>
     /// Snapshot reference of the product at the time of sale.
     /// </summary>
     public ExternalProduct Product { get; private set; } = null!;
