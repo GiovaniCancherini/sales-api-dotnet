@@ -1,3 +1,4 @@
+using SalesApi.Common.Security;
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using AutoMapper;
@@ -13,16 +14,19 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, UpdateUserRe
 {
     private readonly IUserRepository _userRepository;
     private readonly IMapper _mapper;
+    private readonly IPasswordHasher _passwordHasher;
 
     /// <summary>
     /// Initializes a new instance of UpdateUserHandler
     /// </summary>
     /// <param name="userRepository">The user repository</param>
     /// <param name="mapper">The AutoMapper instance</param>
-    public UpdateUserHandler(IUserRepository userRepository, IMapper mapper)
+    /// <param name="passwordHasher">The password hasher</param>
+    public UpdateUserHandler(IUserRepository userRepository, IMapper mapper, IPasswordHasher passwordHasher)
     {
         _userRepository = userRepository;
         _mapper = mapper;
+        _passwordHasher = passwordHasher;
     }
 
     /// <summary>
@@ -39,11 +43,14 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, UpdateUserRe
         if (!validationResult.IsValid)
             throw new ValidationException(validationResult.Errors);
 
-        var user = _mapper.Map<User>(command);
+        var user = await _userRepository.GetByIdAsync(command.Id, cancellationToken)
+            ?? throw new KeyNotFoundException($"User with ID {command.Id} not found");
 
-        var success = await _userRepository.UpdateAsync(user, cancellationToken);
-        if (!success)
-            throw new KeyNotFoundException($"User with ID {user.Id} not found");
+        _mapper.Map(command, user);
+        user.Password = _passwordHasher.HashPassword(command.Password);
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user, cancellationToken);
 
         return new UpdateUserResponse { Success = true };
     }
