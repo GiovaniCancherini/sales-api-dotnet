@@ -165,11 +165,24 @@ Every non-2xx response - validation failures, missing resources, authentication/
 
 ## Running Tests
 
+The solution has three test tiers:
+
 ```bash
+# Unit - no external dependencies, runs anywhere
 dotnet test tests/SalesApi.Unit/SalesApi.Unit.csproj
+
+# Integration and Functional - need Docker running (Testcontainers spins up a
+# real, throwaway Postgres per run; nothing to configure manually)
+dotnet test tests/SalesApi.Integration/SalesApi.Integration.csproj
+dotnet test tests/SalesApi.Functional/SalesApi.Functional.csproj
+
+# Or all three at once
+dotnet test SalesApi.sln
 ```
 
-The unit suite covers the domain's business rules (discount tiers, aggregate invariants, domain events), the Application layer's handlers (success paths, not-found, validation failures, and business-specific edge cases), and includes an AutoMapper configuration test that builds the real mapper (rather than a mock) to catch broken or incomplete profiles.
+- **Unit** covers the domain's business rules (discount tiers, aggregate invariants, domain events), the Application layer's handlers (success paths, not-found, validation failures, and business-specific edge cases), and an AutoMapper configuration test that builds the real mapper (rather than a mock) to catch broken or incomplete profiles.
+- **Integration** exercises `SaleRepository` against a real Postgres instance - specifically the EF Core Added-vs-Modified ambiguity around `SaleItem`'s client-generated key, which a mocked repository can never catch since it only ever manifested against a real database.
+- **Functional** boots the actual WebApi host (`WebApplicationFactory`) behind a real Postgres instance and drives it through plain HTTP: the discount tiers, the quantity ceiling, the full cancel/update/add-item flows, and the `{type, error, detail}` error shape for 400/401/404/409 - the same scenarios verified manually via curl during development, now automated.
 
 ## Project Structure
 
