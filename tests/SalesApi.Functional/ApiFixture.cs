@@ -1,7 +1,10 @@
+using SalesApi.ORM.Repositories;
 using SalesApi.WebApi;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using MongoDB.Driver;
+using Testcontainers.MongoDb;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -9,25 +12,34 @@ namespace SalesApi.Functional;
 
 /// <summary>
 /// Boots the real WebApi host (full middleware pipeline: auth, exception
-/// handling, validation, JSON serialization) against a real, throwaway
-/// Postgres instance via Testcontainers - as close to hitting the actual
-/// running API as an automated test gets, replacing the manual curl
+/// handling, validation, JSON serialization) against real, throwaway
+/// Postgres and MongoDB instances via Testcontainers - as close to hitting the
+/// actual running API as an automated test gets, replacing the manual curl
 /// verification this project relied on during development.
 /// </summary>
 public class ApiFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
         .WithImage("postgres:13")
         .WithDatabase("sales_api_functional")
         .WithUsername("developer")
         .WithPassword("***REMOVED***")
         .Build();
 
+    private readonly MongoDbContainer _mongo = new MongoDbBuilder()
+        .WithImage("mongo:8.0")
+        .Build();
+
     private WebApplicationFactory<Program> _factory = null!;
+
+    /// <summary>
+    /// The collection the API appends sale events to, for asserting on them directly.
+    /// </summary>
+    public IMongoCollection<SaleEventDocument> SaleEvents { get; private set; } = null!;
 
     public async Task InitializeAsync()
     {
-        await _container.StartAsync();
+        await Task.WhenAll(_postgres.StartAsync(), _mongo.StartAsync());
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
@@ -35,10 +47,15 @@ public class ApiFixture : IAsyncLifetime
             {
                 configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["ConnectionStrings:DefaultConnection"] = _container.GetConnectionString()
+                    ["ConnectionStrings:DefaultConnection"] = _postgres.GetConnectionString(),
+                    ["ConnectionStrings:MongoDb"] = _mongo.GetConnectionString()
                 });
             });
         });
+
+        SaleEvents = new MongoClient(_mongo.GetConnectionString())
+            .GetDatabase(MongoSaleEventStore.DatabaseName)
+            .GetCollection<SaleEventDocument>(MongoSaleEventStore.CollectionName);
     }
 
     // A fresh client per call, not one shared instance: tests mutate default
@@ -49,7 +66,7 @@ public class ApiFixture : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _factory.DisposeAsync();
-        await _container.DisposeAsync();
+        await Task.WhenAll(_postgres.DisposeAsync().AsTask(), _mongo.DisposeAsync().AsTask());
     }
 }
 

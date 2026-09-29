@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
+using SalesApi.Domain.Events;
 using SalesApi.WebApi.Common;
 using SalesApi.WebApi.Features.Sales.CreateSale;
 using SalesApi.WebApi.Features.Sales.GetAllSale;
 using SalesApi.WebApi.Features.Sales.GetBySaleId;
 using SalesApi.WebApi.Features.Sales.UpdateSale;
+using MongoDB.Driver;
 using Xunit;
 
 namespace SalesApi.Functional;
@@ -248,5 +250,27 @@ public class SalesFunctionalTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions.CaseInsensitive);
         Assert.Equal("ValidationError", body?.Type);
+    }
+
+    [Fact(DisplayName = "Given a sale When creating it and cancelling one item Then both events are stored in MongoDB")]
+    public async Task Given_Sale_When_CreatedAndItemCancelled_Then_EventsStoredInMongo()
+    {
+        // Given
+        using var client = await AuthHelper.CreateAuthenticatedClientAsync(_fixture.CreateClient());
+        var createResponse = await client.PostAsJsonAsync("/api/Sales", ValidSaleRequest(ValidItem(1, 20m), ValidItem(1, 30m)));
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponseWithData<CreateSaleResponse>>(JsonOptions.CaseInsensitive);
+        var saleId = created!.Data!.Id;
+
+        var detail = await (await client.GetAsync($"/api/Sales/{saleId}"))
+            .Content.ReadFromJsonAsync<ApiResponseWithData<SaleDetailResponse>>(JsonOptions.CaseInsensitive);
+        var itemId = detail!.Data!.Items.First().Id;
+
+        // When
+        (await client.DeleteAsync($"/api/Sales/{saleId}/items/{itemId}")).EnsureSuccessStatusCode();
+
+        // Then - events are appended synchronously after the Postgres commit, so they're already there
+        var events = await _fixture.SaleEvents.Find(e => e.SaleId == saleId).ToListAsync();
+        Assert.Contains(events, e => e.EventType == nameof(SaleCreatedEvent));
+        Assert.Contains(events, e => e.EventType == nameof(ItemCancelledEvent) && e.ItemId == itemId);
     }
 }
