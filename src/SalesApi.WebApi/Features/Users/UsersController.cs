@@ -121,30 +121,25 @@ public class UsersController : BaseController
     }
 
     /// <summary>
-    /// Retrieves a list of all users
+    /// Lists users, with pagination (_page/_size) and ordering (_order) -
+    /// same convention as SalesController.ListSales.
     /// </summary>
-    /// <param name="pageNumber">Page number (default 1)</param>
-    /// <param name="pageSize">Page size (default 10)</param>
+    /// <param name="request">The list query parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of users</returns>
     [HttpGet()]
     [ProducesResponseType(typeof(ApiResponseWithData<PaginatedResponse<ListUsersResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ListUsers(
-        [FromQuery] int pageNumber = 1, 
-        [FromQuery] int pageSize = 10, 
-        CancellationToken cancellationToken = default)
+    public async Task<IActionResult> ListUsers([FromQuery] ListUsersRequest request, CancellationToken cancellationToken = default)
     {
-        var request = new ListUsersRequest { PageNumber = pageNumber, PageSize = pageSize };
         var validator = new ListUsersRequestValidator();
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
 
         if (!validationResult.IsValid)
             return BadRequest(validationResult.Errors);
 
-        var command = _mapper.Map<GetAllUserQuery>(request);
-        var users = await _mediator.Send(command, cancellationToken);
+        var query = _mapper.Map<GetAllUserQuery>(request);
+        var users = await _mediator.Send(query, cancellationToken);
 
         // PaginatedList<T>.CreateAsync uses EF's CountAsync/ToListAsync, which need a
         // real IQueryable backed by IAsyncQueryProvider - users.AsQueryable() here just
@@ -152,8 +147,8 @@ public class UsersController : BaseController
         // instead, same fix as SalesController.ListSales.
         var dtos = _mapper.Map<List<ListUsersResponse>>(users);
         var totalCount = dtos.Count;
-        var pageItems = dtos.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
-        var paginated = new PaginatedList<ListUsersResponse>(pageItems, totalCount, pageNumber, pageSize);
+        var pageItems = dtos.Skip((request.Page - 1) * request.Size).Take(request.Size).ToList();
+        var paginated = new PaginatedList<ListUsersResponse>(pageItems, totalCount, request.Page, request.Size);
 
         return OkPaginated(paginated, "List of users retrieved successfully");
     }
