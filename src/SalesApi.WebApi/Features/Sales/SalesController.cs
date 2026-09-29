@@ -183,11 +183,8 @@ public class SalesController : BaseController
         var result = await _mediator.Send(query, cancellationToken);
         var mapped = _mapper.Map<List<SaleListItemResponse>>(result.Data);
 
-        // PaginatedList<T>.CreateAsync uses EF's CountAsync/ToListAsync, which need
-        // a real IQueryable backed by IAsyncQueryProvider - a DbSet, not a List
-        // wrapped with .AsQueryable(). GetAllSaleHandler already filters/orders in
-        // memory, so build the PaginatedList via its plain constructor instead
-        // (no EF involved) and let OkPaginated build the response envelope.
+        // PaginatedList<T>.CreateAsync needs a real IQueryable backed by
+        // IAsyncQueryProvider; mapped here is an in-memory List, so page it directly.
         var totalCount = mapped.Count;
         var pageItems = mapped.Skip((request.Page - 1) * request.Size).Take(request.Size).ToList();
         var paginated = new PaginatedList<SaleListItemResponse>(pageItems, totalCount, request.Page, request.Size);

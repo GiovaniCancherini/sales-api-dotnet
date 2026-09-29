@@ -22,8 +22,7 @@ public class CreateUserProfile : Profile
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.Events, opt => opt.Ignore());
 
-        // User.Username doesn't match CreateUserResult.Name by convention -
-        // same gap already fixed in GetUserProfile/GetAllUserProfile.
+        // User.Username doesn't match CreateUserResult.Name by convention.
         CreateMap<User, CreateUserResult>()
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Username));
     }

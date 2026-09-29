@@ -141,10 +141,8 @@ public class UsersController : BaseController
         var query = _mapper.Map<GetAllUserQuery>(request);
         var users = await _mediator.Send(query, cancellationToken);
 
-        // PaginatedList<T>.CreateAsync uses EF's CountAsync/ToListAsync, which need a
-        // real IQueryable backed by IAsyncQueryProvider - users.AsQueryable() here just
-        // wraps an in-memory List (LINQ-to-Objects), which throws. Page synchronously
-        // instead, same fix as SalesController.ListSales.
+        // PaginatedList<T>.CreateAsync needs a real IQueryable backed by
+        // IAsyncQueryProvider; users here is an in-memory List, so page it directly.
         var dtos = _mapper.Map<List<ListUsersResponse>>(users);
         var totalCount = dtos.Count;
         var pageItems = dtos.Skip((request.Page - 1) * request.Size).Take(request.Size).ToList();

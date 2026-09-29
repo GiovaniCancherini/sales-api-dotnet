@@ -22,9 +22,8 @@ public class DefaultContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // AggregateRoot.Events expõe IReadOnlyCollection<DomainEvent>, uma propriedade
-        // pública que o EF tentaria mapear como navegação/entidade. DomainEvent não é
-        // (e não deve ser) uma tabela, então tira ele do modelo de vez.
+        // AggregateRoot.Events is a public property EF would otherwise try to
+        // map as a navigation/entity. DomainEvent is not a table.
         modelBuilder.Ignore<DomainEvent>();
 
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

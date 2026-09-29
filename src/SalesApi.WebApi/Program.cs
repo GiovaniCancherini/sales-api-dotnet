@@ -67,10 +67,9 @@ public class Program
 
             builder.RegisterDependencies();
 
-            // AppDomain.CurrentDomain.GetAssemblies() só enxerga assemblies já carregados
-            // na memória neste exato instante - nada antes desta linha força o assembly
-            // Application a carregar, então os Profiles de lá (ex.: CreateSaleProfile)
-            // ficam de fora silenciosamente. Aponta explícito pros assemblies que importam.
+            // Pass explicit assemblies rather than AppDomain.CurrentDomain.GetAssemblies():
+            // that only sees assemblies already loaded at this exact instant, so the
+            // Application assembly's Profiles could be silently skipped.
             builder.Services.AddAutoMapper(
                 (System.Action<AutoMapper.IMapperConfigurationExpression>)null,
                 typeof(ApplicationLayer).Assembly,

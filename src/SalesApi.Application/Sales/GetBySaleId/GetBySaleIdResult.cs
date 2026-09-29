@@ -2,8 +2,6 @@ namespace SalesApi.Application.Sales.GetBySaleId;
 
 /// <summary>
 /// Response model for GetBySaleId operation - full sale detail, including items.
-/// Was just { Id } before, missing everything the README's Use Case actually
-/// requires the API to inform (SaleNumber, Date, Customer, Branch, items, etc.).
 /// </summary>
 public class GetBySaleIdResult
 {

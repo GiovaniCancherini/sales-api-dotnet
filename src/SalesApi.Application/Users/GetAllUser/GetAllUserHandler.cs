@@ -41,17 +41,14 @@ public class GetAllUserHandler : IRequestHandler<GetAllUserQuery, List<GetAllUse
         if (!validationResult.IsValid)
             throw new ValidationException(validationResult.Errors);
 
-        // An empty result is a normal, valid response for a list endpoint -
-        // it used to throw KeyNotFoundException (404) here, which is wrong:
-        // a fresh database with zero users should return 200 with an empty list.
+        // An empty result is a normal, valid response for a list endpoint.
         var users = await _userRepository.GetAllAsync(cancellationToken) ?? new List<User>();
 
         return _mapper.Map<List<GetAllUserResult>>(ApplyOrder(users, request.Order));
     }
 
     /// <summary>
-    /// Parses "field desc, field2" - same convention as GetAllSaleHandler's
-    /// ApplyOrder, matching the API's _order example.
+    /// Parses "field desc, field2" per the API's _order convention.
     /// </summary>
     private static IEnumerable<User> ApplyOrder(IEnumerable<User> source, string? order)
     {
