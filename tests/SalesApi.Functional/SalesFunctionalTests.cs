@@ -37,10 +37,7 @@ public class SalesFunctionalTests
     private static CreateSaleRequest ValidSaleRequest(params CreateSaleItemRequest[] items) => new()
     {
         SaleNumber = $"FUNC-{Guid.NewGuid():N}",
-        // CreateSaleRequestValidator compares against DateTime.Now (server-local),
-        // not UtcNow - using Now here avoids a timezone mismatch causing a false
-        // "date in the future" validation failure.
-        Date = DateTime.Now,
+        Date = DateTime.UtcNow,
         CustomerId = Guid.NewGuid().ToString(),
         CustomerName = "Functional Test Customer",
         BranchId = Guid.NewGuid().ToString(),
@@ -76,6 +73,26 @@ public class SalesFunctionalTests
         Assert.Equal(0m, sale.Items.Single(i => i.Quantity == 3).Discount);
         Assert.Equal(5m, sale.Items.Single(i => i.Quantity == 5).Discount);
         Assert.Equal(30m, sale.Items.Single(i => i.Quantity == 15).Discount);
+    }
+
+    [Fact(DisplayName = "Given a client-supplied backdated date When creating a sale Then the persisted sale keeps that exact date")]
+    public async Task Given_BackdatedDate_When_Creating_Then_PersistedDateMatches()
+    {
+        // Given
+        using var client = await AuthHelper.CreateAuthenticatedClientAsync(_fixture.CreateClient());
+        var request = ValidSaleRequest(ValidItem(1, 10m));
+        request.Date = DateTime.UtcNow.AddDays(-3);
+
+        // When
+        var createResponse = await client.PostAsJsonAsync("/api/Sales", request);
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponseWithData<CreateSaleResponse>>(JsonOptions.CaseInsensitive);
+        var getResponse = await client.GetAsync($"/api/Sales/{created!.Data!.Id}");
+        var detail = await getResponse.Content.ReadFromJsonAsync<ApiResponseWithData<SaleDetailResponse>>(JsonOptions.CaseInsensitive);
+
+        // Then - the date the client sent must survive, not be silently
+        // replaced by the server's "now" at creation time.
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        Assert.Equal(request.Date, detail!.Data!.Date.UtcDateTime, TimeSpan.FromSeconds(1));
     }
 
     [Fact(DisplayName = "Given a quantity above 20 When creating a sale Then returns 400 ValidationError and the sale is not created")]

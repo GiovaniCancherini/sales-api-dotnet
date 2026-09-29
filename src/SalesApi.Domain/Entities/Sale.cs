@@ -29,8 +29,9 @@ public class Sale : AggregateRoot
     public string SaleNumber { get; private set; } = string.Empty;
 
     /// <summary>
-    /// Gets the date and time when the sale was created.
-    /// Stored as UTC.
+    /// Gets the date and time when the sale was made.
+    /// Caller-supplied (e.g. a backdated or offline-synced sale); defaults to
+    /// now if not provided. Stored as UTC.
     /// </summary>
     public DateTimeOffset Date { get; private set; }
 
@@ -66,22 +67,24 @@ public class Sale : AggregateRoot
     public Sale(
         string saleNumber,
         ExternalCustomer customer,
-        ExternalBranch branch)
+        ExternalBranch branch,
+        DateTimeOffset? date = null)
     {
         Id = Guid.NewGuid();
         SaleNumber = saleNumber;
         Customer = customer ?? throw new ArgumentNullException(nameof(customer));
         Branch = branch ?? throw new ArgumentNullException(nameof(branch));
-        Date = DateTimeOffset.UtcNow;
+        Date = date ?? DateTimeOffset.UtcNow;
         Status = SaleStatus.Active;
     }
 
     public static Sale Create(
         string saleNumber,
         ExternalCustomer customer,
-        ExternalBranch branch)
+        ExternalBranch branch,
+        DateTimeOffset? date = null)
     {
-        var sale = new Sale(saleNumber, customer, branch);
+        var sale = new Sale(saleNumber, customer, branch, date);
 
         sale.Raise(new SaleCreatedEvent(sale.Id));
 
