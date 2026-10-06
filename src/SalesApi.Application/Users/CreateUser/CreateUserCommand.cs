@@ -1,5 +1,4 @@
-﻿using SalesApi.Common.Validation;
-using SalesApi.Domain.Enums;
+﻿using SalesApi.Domain.Enums;
 using MediatR;
 
 namespace SalesApi.Application.Users.CreateUser;
@@ -49,16 +48,4 @@ public class CreateUserCommand : IRequest<CreateUserResult>
     /// Gets or sets the role of the user.
     /// </summary>
     public UserRole Role { get; set; }
-
-
-    public ValidationResultDetail Validate()
-    {
-        var validator = new CreateUserCommandValidator();
-        var result = validator.Validate(this);
-        return new ValidationResultDetail
-        {
-            IsValid = result.IsValid,
-            Errors = result.Errors.Select(o => (ValidationErrorDetail)o)
-        };
-    }
 }

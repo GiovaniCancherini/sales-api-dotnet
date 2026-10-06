@@ -132,12 +132,6 @@ public class UsersController : BaseController
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ListUsers([FromQuery] ListUsersRequest request, CancellationToken cancellationToken = default)
     {
-        var validator = new ListUsersRequestValidator();
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-
-        if (!validationResult.IsValid)
-            return BadRequest(validationResult.Errors);
-
         var query = _mapper.Map<GetAllUserQuery>(request);
         var (users, totalCount) = await _mediator.Send(query, cancellationToken);
 

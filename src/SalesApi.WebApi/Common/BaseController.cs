@@ -1,6 +1,5 @@
 ﻿using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace SalesApi.WebApi.Common;
 
@@ -8,12 +7,6 @@ namespace SalesApi.WebApi.Common;
 [ApiController]
 public class BaseController : ControllerBase
 {
-    protected int GetCurrentUserId() =>
-            int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new NullReferenceException());
-
-    protected string GetCurrentUserEmail() =>
-        User.FindFirst(ClaimTypes.Email)?.Value ?? throw new NullReferenceException();
-
     protected IActionResult Ok<T>(T data) =>
             base.Ok(new ApiResponseWithData<T> { Data = data, Success = true });
 
@@ -30,9 +23,6 @@ public class BaseController : ControllerBase
     // string literal, so this doesn't collide with it.
     protected IActionResult Ok(string message) =>
             base.Ok(new ApiResponse { Message = message, Success = true });
-
-    protected IActionResult Created<T>(string routeName, object routeValues, T data) =>
-        base.CreatedAtRoute(routeName, routeValues, new ApiResponseWithData<T> { Data = data, Success = true });
 
     protected IActionResult BadRequest(string message) =>
         base.BadRequest(new ApiErrorResponse { Type = "ValidationError", Error = "Invalid input data", Detail = message });
