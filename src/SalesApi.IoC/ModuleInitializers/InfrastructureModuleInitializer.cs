@@ -3,7 +3,9 @@ using SalesApi.ORM;
 using SalesApi.ORM.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 namespace SalesApi.IoC.ModuleInitializers;
 
@@ -14,5 +16,11 @@ public class InfrastructureModuleInitializer : IModuleInitializer
         builder.Services.AddScoped<DbContext>(provider => provider.GetRequiredService<DefaultContext>());
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+
+        // MongoClient is thread-safe and meant to be a single instance per application.
+        builder.Services.AddSingleton<IMongoClient>(provider => new MongoClient(
+            provider.GetRequiredService<IConfiguration>().GetConnectionString("MongoDb")
+                ?? throw new InvalidOperationException("ConnectionStrings:MongoDb is not configured.")));
+        builder.Services.AddSingleton<ISaleEventStore, MongoSaleEventStore>();
     }
 }

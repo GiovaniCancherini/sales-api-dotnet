@@ -77,9 +77,18 @@ public class Sale : AggregateRoot
         string saleNumber,
         ExternalCustomer customer,
         ExternalBranch branch,
-        DateTimeOffset? date = null)
+        DateTimeOffset? date = null,
+        IEnumerable<SaleItem>? items = null)
     {
         var sale = new Sale(saleNumber, customer, branch, date);
+
+        // Initial items are part of the creation, not a modification: AddItem would
+        // raise one SaleModifiedEvent per item on a sale that doesn't exist yet.
+        if (items is not null)
+        {
+            sale._items.AddRange(items);
+            sale.RecalculateTotal();
+        }
 
         sale.Raise(new SaleCreatedEvent(sale.Id));
 

@@ -21,7 +21,7 @@ The solution follows Clean Architecture, with dependencies pointing inward towar
 |---|---|---|
 | Domain | `SalesApi.Domain` | Entities, value objects, domain events and business rules. No dependency on any other layer. |
 | Application | `SalesApi.Application` | Use cases (MediatR commands/queries/handlers), validation, AutoMapper profiles. |
-| ORM | `SalesApi.ORM` | EF Core `DbContext`, entity configurations, migrations, repository implementations. |
+| ORM | `SalesApi.ORM` | EF Core `DbContext`, entity configurations, migrations, repository implementations, and the MongoDB sale event store. |
 | IoC | `SalesApi.IoC` | Dependency injection wiring between layers. |
 | WebApi | `SalesApi.WebApi` | Controllers, request/response DTOs, middleware, Swagger, JWT configuration. |
 | Common | `SalesApi.Common` | Cross-cutting concerns (security, logging, validation helpers) shared by every layer. |
@@ -30,12 +30,13 @@ Key design decisions:
 
 - **DDD aggregate boundary**: `Sale` is the aggregate root; `SaleItem` has no controller, repository or standalone existence of its own - it's only ever created, changed or cancelled through `Sale` (`Sale.AddItem`, `Sale.ReplaceItems`, `Sale.CancelItem`, `Sale.Cancel`).
 - **External Identities pattern**: `Sale` references `Customer`, `Branch` and `Product` (via `SaleItem`) as denormalized value objects (`ExternalCustomer`, `ExternalBranch`, `ExternalProduct`), snapshotting the referenced entity's description at the time of the sale instead of a live foreign key into another domain.
-- **Domain events**: `SaleCreatedEvent`, `SaleModifiedEvent`, `SaleCancelledEvent` and `ItemCancelledEvent` are raised by the aggregate and dispatched via MediatR notifications when the `DbContext` saves changes. They're logged, not published to a message broker.
+- **Domain events**: `SaleCreatedEvent`, `SaleModifiedEvent`, `SaleCancelledEvent` and `ItemCancelledEvent` are raised by the aggregate and dispatched via MediatR notifications when the `DbContext` saves changes. Each one is logged and appended to a `sale_events` collection in MongoDB (event type, sale id, item id when applicable, timestamp); they're not published to a message broker. The MongoDB write is best-effort: events are dispatched after the sale is committed in PostgreSQL, so a MongoDB outage logs a warning instead of failing a request whose sale was already saved.
 
 ## Tech Stack
 
 - **.NET 8** / **C#**
 - **PostgreSQL** with **EF Core** for persistence
+- **MongoDB** for the sale events log
 - **MediatR** for the command/query pipeline
 - **AutoMapper** for object-to-object mapping
 - **FluentValidation** for request/command validation
@@ -73,7 +74,7 @@ From the repository root:
 docker compose up -d --build
 ```
 
-This starts the API, a PostgreSQL container (with a health check gating the API's startup) and a couple of infrastructure containers (MongoDB, Redis) that ship with the template but aren't used by this implementation. **Database migrations are applied automatically** on application startup - no manual `dotnet ef database update` step is needed.
+This starts the API, PostgreSQL and MongoDB (both with health checks gating the API's startup) and a Redis container that ships with the template but isn't used by this implementation. **Database migrations are applied automatically** on application startup - no manual `dotnet ef database update` step is needed.
 
 The API container publishes ports 8080 (HTTP) and 8081 (HTTPS) to random host ports. Find the mapped port with:
 
@@ -83,9 +84,15 @@ docker compose port salesapi.webapi 8081
 
 Then open `https://localhost:<mapped-port>/swagger` for the interactive API documentation.
 
+To see the sale events stored in MongoDB (also reachable from MongoDB Compass at `mongodb://developer:***REMOVED***@localhost:27017`):
+
+```bash
+docker exec sales_api_nosql mongosh -u developer -p '***REMOVED***' --authenticationDatabase admin --quiet --eval "db.getSiblingDB('sales_api').sale_events.find().toArray()"
+```
+
 ### Running locally (without Docker)
 
-You'll need a local PostgreSQL instance and a connection string in `src/SalesApi.WebApi/appsettings.Development.json`, then:
+You'll need local PostgreSQL and MongoDB instances, with their connection strings (`DefaultConnection` and `MongoDb`) in `src/SalesApi.WebApi/appsettings.Development.json`, then:
 
 ```bash
 dotnet run --project src/SalesApi.WebApi
@@ -174,8 +181,8 @@ The solution has three test tiers:
 # Unit - no external dependencies, runs anywhere
 dotnet test tests/SalesApi.Unit/SalesApi.Unit.csproj
 
-# Integration and Functional - need Docker running (Testcontainers spins up a
-# real, throwaway Postgres per run; nothing to configure manually)
+# Integration and Functional - need Docker running (Testcontainers spins up real,
+# throwaway Postgres and MongoDB instances per run; nothing to configure manually)
 dotnet test tests/SalesApi.Integration/SalesApi.Integration.csproj
 dotnet test tests/SalesApi.Functional/SalesApi.Functional.csproj
 
@@ -185,7 +192,7 @@ dotnet test SalesApi.sln
 
 - **Unit** covers the domain's business rules (discount tiers, aggregate invariants, domain events), the Application layer's handlers (success paths, not-found, validation failures, and business-specific edge cases), and an AutoMapper configuration test that builds the real mapper (rather than a mock) to catch broken or incomplete profiles.
 - **Integration** exercises `SaleRepository` against a real Postgres instance - specifically the EF Core Added-vs-Modified ambiguity around `SaleItem`'s client-generated key, which a mocked repository can never catch since it only ever manifested against a real database.
-- **Functional** boots the actual WebApi host (`WebApplicationFactory`) behind a real Postgres instance and drives it through plain HTTP: the discount tiers, the quantity ceiling, the full cancel/update/add-item flows, list filtering/ordering/pagination, user updates, and the `{type, error, detail}` error shape for 400/401/404/409 - the same scenarios verified manually via curl during development, now automated.
+- **Functional** boots the actual WebApi host (`WebApplicationFactory`) behind real Postgres and MongoDB instances and drives it through plain HTTP: the discount tiers, the quantity ceiling, the full cancel/update/add-item flows, list filtering/ordering/pagination, user updates, sale events landing in MongoDB, and the `{type, error, detail}` error shape for 400/401/404/409 - the same scenarios verified manually via curl during development, now automated.
 
 ### Coverage report
 

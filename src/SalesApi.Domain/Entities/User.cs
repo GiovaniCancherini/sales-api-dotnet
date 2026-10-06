@@ -83,9 +83,20 @@ public class User : AggregateRoot, IUser
     /// </summary>
     public User()
     {
+        // Generated here, like Sale and SaleItem, so the id exists before the insert
+        // (UserRegisteredEvent needs it). EF Core overwrites it when loading a user.
+        Id = Guid.NewGuid();
         CreatedAt = DateTime.UtcNow;
+    }
 
-        Raise(new UserRegisteredEvent(this));
+    /// <summary>
+    /// Raises <see cref="UserRegisteredEvent"/>. Called once, when the user is first
+    /// created: not from the constructor, which EF Core also runs every time it
+    /// loads a user, so every later save would publish a false registration.
+    /// </summary>
+    public void Register()
+    {
+        Raise(new UserRegisteredEvent(Id));
     }
 
     /// <summary>

@@ -10,6 +10,7 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
       - ConnectionStrings__DefaultConnection=Host=salesapi.database;Port=5432;Database=sales_api;Username=developer;Password=***REMOVED***
+      - ConnectionStrings__MongoDb=mongodb://developer:***REMOVED***@salesapi.nosql:27017/?serverSelectionTimeoutMS=3000
     ports:
       - "8080"
       - "8081"
@@ -18,6 +19,8 @@ services:
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
     depends_on:
       salesapi.database:
+        condition: service_healthy
+      salesapi.nosql:
         condition: service_healthy
 
   salesapi.database:
@@ -44,7 +47,12 @@ services:
         MONGO_INITDB_ROOT_USERNAME: developer
         MONGO_INITDB_ROOT_PASSWORD: ***REMOVED***
     ports:
-      - "27017"
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   salesapi.cache:
     container_name: sales_api_cache 

@@ -273,6 +273,25 @@ public class SaleTests
 
     #region Domain Events
 
+    [Fact(DisplayName = "Given initial items When creating sale Then should raise only SaleCreatedEvent and total the items")]
+    public void Given_InitialItems_When_CreateSale_Then_ShouldRaiseOnlySaleCreatedEvent()
+    {
+        // Arrange
+        var items = new[] { SaleItemTestData.GenerateValidSaleItem(), SaleItemTestData.GenerateValidSaleItem() };
+
+        // Act
+        var sale = Sale.Create(
+            "S-123",
+            ExternalCustomerTestData.GenerateValidExternalCustomer(),
+            ExternalBranchTestData.GenerateValidExternalBranch(),
+            items: items);
+
+        // Assert
+        Assert.IsType<SaleCreatedEvent>(Assert.Single(sale.Events));
+        Assert.Equal(2, sale.Items.Count);
+        Assert.Equal(items.Sum(i => i.TotalAmount), sale.TotalAmount);
+    }
+
     [Fact(DisplayName = "Given valid data When creating sale Then should raise SaleCreatedEvent")]
     public void Given_ValidData_When_CreateSale_Then_ShouldRaiseSaleCreatedEvent()
     {
