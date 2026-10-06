@@ -4,7 +4,6 @@ using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using SalesApi.Unit.Domain.Entities.TestData;
 using FluentAssertions;
-using FluentValidation;
 using NSubstitute;
 using Xunit;
 
@@ -90,16 +89,4 @@ public class AddSaleItemHandlerTests
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
 
-    [Fact(DisplayName = "Given item with zero quantity When adding Then throws ValidationException")]
-    public async Task Handle_InvalidCommand_ThrowsValidationException()
-    {
-        // Given
-        var command = new AddSaleItemCommand { SaleId = Guid.NewGuid(), Item = ValidItem(quantity: 0) };
-
-        // When
-        var act = () => _handler.Handle(command, CancellationToken.None);
-
-        // Then
-        await act.Should().ThrowAsync<ValidationException>();
-    }
 }

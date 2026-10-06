@@ -1,4 +1,3 @@
-using FluentValidation;
 using MediatR;
 using SalesApi.Application.Common;
 using SalesApi.Domain.Entities;
@@ -22,14 +21,6 @@ public class GetAllSaleHandler : IRequestHandler<GetAllSaleQuery, GetAllSaleResu
 
     public async Task<GetAllSaleResult> Handle(GetAllSaleQuery request, CancellationToken cancellationToken)
     {
-        var validator = new GetAllSaleValidator();
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
-
         var (sales, totalCount) = await _saleRepository.ListAsync(
             query => ApplyOrder(ApplyFilters(query, request), request.Order),
             request.Page, request.Size, cancellationToken);

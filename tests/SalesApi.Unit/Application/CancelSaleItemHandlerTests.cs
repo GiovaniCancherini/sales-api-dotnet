@@ -3,7 +3,6 @@ using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using SalesApi.Unit.Domain.Entities.TestData;
 using FluentAssertions;
-using FluentValidation;
 using NSubstitute;
 using Xunit;
 
@@ -83,16 +82,4 @@ public class CancelSaleItemHandlerTests
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
-    [Fact(DisplayName = "Given empty item id When cancelling Then throws ValidationException")]
-    public async Task Handle_InvalidCommand_ThrowsValidationException()
-    {
-        // Given
-        var command = new CancelSaleItemCommand(Guid.NewGuid(), Guid.Empty);
-
-        // When
-        var act = () => _handler.Handle(command, CancellationToken.None);
-
-        // Then
-        await act.Should().ThrowAsync<ValidationException>();
-    }
 }

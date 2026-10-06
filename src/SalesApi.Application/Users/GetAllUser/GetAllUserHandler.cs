@@ -1,6 +1,5 @@
 using AutoMapper;
 using MediatR;
-using FluentValidation;
 using SalesApi.Application.Common;
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
@@ -37,12 +36,6 @@ public class GetAllUserHandler : IRequestHandler<GetAllUserQuery, (List<GetAllUs
     /// <returns>The requested page of users and the total user count</returns>
     public async Task<(List<GetAllUserResult> Items, int TotalCount)> Handle(GetAllUserQuery request, CancellationToken cancellationToken)
     {
-        var validator = new GetAllUserValidator();
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-
-        if (!validationResult.IsValid)
-            throw new ValidationException(validationResult.Errors);
-
         var (users, totalCount) = await _userRepository.ListAsync(
             query => ApplyOrder(query, request.Order),
             request.Page, request.Size, cancellationToken);

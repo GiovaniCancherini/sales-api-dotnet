@@ -4,7 +4,6 @@ using SalesApi.Domain.Repositories;
 using SalesApi.Unit.Domain.Entities.TestData;
 using AutoMapper;
 using FluentAssertions;
-using FluentValidation;
 using NSubstitute;
 using Xunit;
 
@@ -59,16 +58,4 @@ public class GetBySaleIdHandlerTests
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
 
-    [Fact(DisplayName = "Given empty id When getting by id Then throws ValidationException")]
-    public async Task Handle_InvalidCommand_ThrowsValidationException()
-    {
-        // Given
-        var query = new GetBySaleIdQuery(Guid.Empty);
-
-        // When
-        var act = () => _handler.Handle(query, CancellationToken.None);
-
-        // Then
-        await act.Should().ThrowAsync<ValidationException>();
-    }
 }

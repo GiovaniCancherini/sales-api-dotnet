@@ -1,7 +1,6 @@
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using SalesApi.Domain.ValueObjects;
-using FluentValidation;
 using MediatR;
 
 namespace SalesApi.Application.Sales.AddSaleItem;
@@ -22,14 +21,6 @@ public class AddSaleItemHandler : IRequestHandler<AddSaleItemCommand, AddSaleIte
 
     public async Task<AddSaleItemResponse> Handle(AddSaleItemCommand request, CancellationToken cancellationToken)
     {
-        var validator = new AddSaleItemValidator();
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
-
         var sale = await _saleRepository.GetByIdAsync(request.SaleId, cancellationToken)
             ?? throw new KeyNotFoundException($"Sale with ID {request.SaleId} not found");
 

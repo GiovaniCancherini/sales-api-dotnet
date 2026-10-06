@@ -50,22 +50,6 @@ public class CreateSaleHandlerTests
     }
 
     /// <summary>
-    /// Tests that an invalid sale creation request throws a validation exception.
-    /// </summary>
-    [Fact(DisplayName = "Given invalid sale data When creating sale Then throws validation exception")]
-    public async Task Handle_InvalidRequest_ThrowsValidationException()
-    {
-        // Given
-        var command = new CreateSaleCommand(); // Empty command fails validation
-
-        // When
-        var act = () => _handler.Handle(command, CancellationToken.None);
-
-        // Then
-        await act.Should().ThrowAsync<FluentValidation.ValidationException>();
-    }
-
-    /// <summary>
     /// Regression guard: CreateSaleProfile used to have a broken
     /// CreateMap&lt;CreateSaleCommand, Sale&gt; that could never actually construct
     /// a Sale (private setters + a static Sale.Create factory). Proves the

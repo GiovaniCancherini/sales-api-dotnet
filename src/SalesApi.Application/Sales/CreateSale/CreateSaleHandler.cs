@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using MediatR;
-using FluentValidation;
 using SalesApi.Domain.Repositories;
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.ValueObjects;
@@ -36,14 +35,6 @@ public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, CreateSaleRe
     /// <returns>The created sale details</returns>
     public async Task<CreateSaleResult> Handle(CreateSaleCommand command, CancellationToken cancellationToken)
     {
-        var validator = new CreateSaleCommandValidator();
-        var validationResult = await validator.ValidateAsync(command, cancellationToken);
-
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
-
         var customer = new ExternalCustomer(Guid.Parse(command.CustomerId), command.CustomerName);
         var branch = new ExternalBranch(Guid.Parse(command.BranchId), command.BranchName, command.BranchCode);
         var date = new DateTimeOffset(DateTime.SpecifyKind(command.Date, DateTimeKind.Utc));

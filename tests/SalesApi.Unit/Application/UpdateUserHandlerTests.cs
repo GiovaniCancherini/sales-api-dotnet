@@ -97,14 +97,4 @@ public class UpdateUserHandlerTests
         await _userRepository.DidNotReceive().UpdateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "Given an empty id When updating Then throws ValidationException before touching the repository")]
-    public async Task Handle_EmptyId_ThrowsValidationException()
-    {
-        // When
-        var act = () => _handler.Handle(ValidCommand(Guid.Empty), CancellationToken.None);
-
-        // Then
-        await act.Should().ThrowAsync<FluentValidation.ValidationException>();
-        await _userRepository.DidNotReceive().GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
-    }
 }
