@@ -86,19 +86,17 @@ public class UserRepository : IUserRepository
     }
 
     /// <summary>
-    /// Updates a user from the database
+    /// Saves the changes made to an existing user, loaded with GetByIdAsync
     /// </summary>
     /// <param name="user">The user to update</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if the user was deleted, false if not found</returns>
-    public async Task<bool> UpdateAsync(User user, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
-        var obtainedUser = await GetByIdAsync(user.Id, cancellationToken);
-        if (obtainedUser == null)
-            return false;
+        // A user loaded through GetByIdAsync is already tracked, so EF writes only the
+        // columns that changed. Update() is needed only for a user that isn't tracked.
+        if (_context.Entry(user).State == EntityState.Detached)
+            _context.Users.Update(user);
 
-        _context.Users.Update(user);
         await _context.SaveChangesAsync(cancellationToken);
-        return true;
     }
 }
