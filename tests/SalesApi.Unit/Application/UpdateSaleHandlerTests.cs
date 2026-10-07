@@ -4,7 +4,6 @@ using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using SalesApi.Unit.Domain.Entities.TestData;
 using FluentAssertions;
-using FluentValidation;
 using NSubstitute;
 using Xunit;
 
@@ -94,16 +93,4 @@ public class UpdateSaleHandlerTests
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
 
-    [Fact(DisplayName = "Given command without items When updating Then throws ValidationException")]
-    public async Task Handle_InvalidCommand_ThrowsValidationException()
-    {
-        // Given
-        var command = new UpdateSaleCommand { Id = Guid.NewGuid(), Items = new List<CreateSaleItemCommand>() };
-
-        // When
-        var act = () => _handler.Handle(command, CancellationToken.None);
-
-        // Then
-        await act.Should().ThrowAsync<ValidationException>();
-    }
 }

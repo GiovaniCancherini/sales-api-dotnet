@@ -1,6 +1,5 @@
 using AutoMapper;
 using MediatR;
-using FluentValidation;
 using SalesApi.Domain.Repositories;
 
 namespace SalesApi.Application.Sales.GetBySaleId;
@@ -35,14 +34,6 @@ public class GetBySaleIdHandler : IRequestHandler<GetBySaleIdQuery, GetBySaleIdR
     /// <returns>The sale details if found</returns>
     public async Task<GetBySaleIdResult> Handle(GetBySaleIdQuery request, CancellationToken cancellationToken)
     {
-        var validator = new GetBySaleIdValidator();
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
-
         var sale = await _saleRepository.GetByIdAsync(request.Id, cancellationToken);
         if (sale == null)
         {

@@ -2,7 +2,6 @@ using SalesApi.Common.Security;
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using AutoMapper;
-using FluentValidation;
 using MediatR;
 
 namespace SalesApi.Application.Users.UpdateUser;
@@ -37,12 +36,6 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, UpdateUserRe
     /// <returns>The result of the update operation</returns>
     public async Task<UpdateUserResponse> Handle(UpdateUserCommand command, CancellationToken cancellationToken)
     {
-        var validator = new UpdateUserCommandValidator();
-        var validationResult = await validator.ValidateAsync(command, cancellationToken);
-
-        if (!validationResult.IsValid)
-            throw new ValidationException(validationResult.Errors);
-
         var user = await _userRepository.GetByIdAsync(command.Id, cancellationToken)
             ?? throw new KeyNotFoundException($"User with ID {command.Id} not found");
 

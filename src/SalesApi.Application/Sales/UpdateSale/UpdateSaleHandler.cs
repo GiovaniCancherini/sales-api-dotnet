@@ -1,7 +1,6 @@
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using SalesApi.Domain.ValueObjects;
-using FluentValidation;
 using MediatR;
 
 namespace SalesApi.Application.Sales.UpdateSale;
@@ -23,14 +22,6 @@ public class UpdateSaleHandler : IRequestHandler<UpdateSaleCommand, UpdateSaleRe
 
     public async Task<UpdateSaleResponse> Handle(UpdateSaleCommand request, CancellationToken cancellationToken)
     {
-        var validator = new UpdateSaleValidator();
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
-
         var sale = await _saleRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new KeyNotFoundException($"Sale with ID {request.Id} not found");
 

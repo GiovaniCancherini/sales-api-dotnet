@@ -47,10 +47,9 @@ public interface IUserRepository
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates a user from the repository
+    /// Saves the changes made to an existing user, loaded with <see cref="GetByIdAsync"/>
     /// </summary>
     /// <param name="user">The user to update</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The created user</returns>
-    Task<bool> UpdateAsync(User user, CancellationToken cancellationToken = default);
+    Task UpdateAsync(User user, CancellationToken cancellationToken = default);
 }

@@ -5,12 +5,12 @@ namespace SalesApi.Application.Users.GetUser;
 /// <summary>
 /// Validator for GetUserCommand
 /// </summary>
-public class GetAllUserValidator : AbstractValidator<GetUserQuery>
+public class GetUserValidator : AbstractValidator<GetUserQuery>
 {
     /// <summary>
     /// Initializes validation rules for GetUserCommand
     /// </summary>
-    public GetAllUserValidator()
+    public GetUserValidator()
     {
         RuleFor(x => x.Id)
             .NotEmpty()

@@ -2,11 +2,9 @@ using SalesApi.Application;
 using SalesApi.Common.HealthChecks;
 using SalesApi.Common.Logging;
 using SalesApi.Common.Security;
-using SalesApi.Common.Validation;
 using SalesApi.IoC;
 using SalesApi.ORM;
 using SalesApi.WebApi.Middleware;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
@@ -83,8 +81,6 @@ public class Program
                     typeof(Program).Assembly
                 );
             });
-
-            builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             var app = builder.Build();
 

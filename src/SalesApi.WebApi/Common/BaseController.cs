@@ -1,6 +1,4 @@
-﻿using FluentValidation.Results;
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace SalesApi.WebApi.Common;
 
@@ -8,12 +6,6 @@ namespace SalesApi.WebApi.Common;
 [ApiController]
 public class BaseController : ControllerBase
 {
-    protected int GetCurrentUserId() =>
-            int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new NullReferenceException());
-
-    protected string GetCurrentUserEmail() =>
-        User.FindFirst(ClaimTypes.Email)?.Value ?? throw new NullReferenceException();
-
     protected IActionResult Ok<T>(T data) =>
             base.Ok(new ApiResponseWithData<T> { Data = data, Success = true });
 
@@ -24,33 +16,13 @@ public class BaseController : ControllerBase
     protected IActionResult Ok<T>(T data, string message) =>
             base.Ok(new ApiResponseWithData<T> { Data = data, Success = true, Message = message });
 
-    // For a success response with no data payload (e.g. after a delete),
-    // mirroring the existing BadRequest(string)/NotFound(string) shape below.
+    // For a success response with no data payload (e.g. after a delete).
     // A non-generic overload wins over Ok<T>(T data) when called with a
     // string literal, so this doesn't collide with it.
+    // Error responses don't live here: ExceptionHandlingMiddleware turns
+    // validation, not-found and conflict exceptions into the standard error shape.
     protected IActionResult Ok(string message) =>
             base.Ok(new ApiResponse { Message = message, Success = true });
-
-    protected IActionResult Created<T>(string routeName, object routeValues, T data) =>
-        base.CreatedAtRoute(routeName, routeValues, new ApiResponseWithData<T> { Data = data, Success = true });
-
-    protected IActionResult BadRequest(string message) =>
-        base.BadRequest(new ApiErrorResponse { Type = "ValidationError", Error = "Invalid input data", Detail = message });
-
-    // Matches callers that pass a FluentValidation ValidationResult.Errors directly
-    // (e.g. `return BadRequest(validationResult.Errors);`) - without this overload,
-    // those calls bind to ControllerBase's own BadRequest(object), returning the
-    // raw ValidationFailure list instead of the standard error shape.
-    protected IActionResult BadRequest(IEnumerable<ValidationFailure> errors) =>
-        base.BadRequest(new ApiErrorResponse
-        {
-            Type = "ValidationError",
-            Error = "Invalid input data",
-            Detail = string.Join(" ", errors.Select(e => e.ErrorMessage))
-        });
-
-    protected IActionResult NotFound(string message = "Resource not found") =>
-        base.NotFound(new ApiErrorResponse { Type = "ResourceNotFound", Error = "Resource not found", Detail = message });
 
     protected IActionResult OkPaginated<T>(PaginatedList<T> pagedList, string message = "") =>
             // base.Ok, not Ok(...): PaginatedResponse<T> already IS an

@@ -1,5 +1,4 @@
-﻿using SalesApi.Common.Validation;
-using MediatR;
+﻿using MediatR;
 
 namespace SalesApi.Application.Sales.CreateSale;
 
@@ -7,10 +6,9 @@ namespace SalesApi.Application.Sales.CreateSale;
 /// Command for creating a new sale.
 /// </summary>
 /// <remarks>
-/// This command is used to capture the required data for creating a sale, 
-/// including  .
-/// It implements <see cref="IRequest{TResponse}"/> to initiate the request 
-/// that returns a <see cref="AddSaleItemResult"/>.
+/// This command is used to capture the required data for creating a sale.
+/// It implements <see cref="IRequest{TResponse}"/> to initiate the request
+/// that returns a <see cref="CreateSaleResult"/>.
 /// 
 /// The data provided in this command is validated using the 
 /// <see cref="CreateSaleCommandValidator"/> which extends 
@@ -58,15 +56,4 @@ public class CreateSaleCommand : IRequest<CreateSaleResult>
     /// Gets or sets the collection of items included in the sale.
     /// </summary>
     public ICollection<CreateSaleItemCommand> Items { get; set; } = new List<CreateSaleItemCommand>();
-
-    public ValidationResultDetail Validate()
-    {
-        var validator = new CreateSaleCommandValidator();
-        var result = validator.Validate(this);
-        return new ValidationResultDetail
-        {
-            IsValid = result.IsValid,
-            Errors = result.Errors.Select(o => (ValidationErrorDetail)o)
-        };
-    }
 }

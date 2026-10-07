@@ -31,6 +31,7 @@ Key design decisions:
 - **DDD aggregate boundary**: `Sale` is the aggregate root; `SaleItem` has no controller, repository or standalone existence of its own - it's only ever created, changed or cancelled through `Sale` (`Sale.AddItem`, `Sale.ReplaceItems`, `Sale.CancelItem`, `Sale.Cancel`).
 - **External Identities pattern**: `Sale` references `Customer`, `Branch` and `Product` (via `SaleItem`) as denormalized value objects (`ExternalCustomer`, `ExternalBranch`, `ExternalProduct`), snapshotting the referenced entity's description at the time of the sale instead of a live foreign key into another domain.
 - **Domain events**: `SaleCreatedEvent`, `SaleModifiedEvent`, `SaleCancelledEvent` and `ItemCancelledEvent` are raised by the aggregate and dispatched via MediatR notifications when the `DbContext` saves changes. Each one is logged and appended to a `sale_events` collection in MongoDB (event type, sale id, item id when applicable, timestamp); they're not published to a message broker. The MongoDB write is best-effort: events are dispatched after the sale is committed in PostgreSQL, so a MongoDB outage logs a warning instead of failing a request whose sale was already saved.
+- **Validation in the MediatR pipeline**: every command and query has a FluentValidation validator in the Application layer, and a `ValidationBehavior` runs it before the handler. Invalid input never reaches business logic, each rule lives in one place, and a failure becomes a `400 ValidationError` through the exception middleware.
 
 ## Tech Stack
 
@@ -39,7 +40,7 @@ Key design decisions:
 - **MongoDB** for the sale events log
 - **MediatR** for the command/query pipeline
 - **AutoMapper** for object-to-object mapping
-- **FluentValidation** for request/command validation
+- **FluentValidation** for command/query validation, run in the MediatR pipeline
 - **JWT Bearer authentication**
 - **Docker Compose** for local orchestration
 - **xUnit**, **NSubstitute** and **Bogus** for unit testing
@@ -190,7 +191,7 @@ dotnet test tests/SalesApi.Functional/SalesApi.Functional.csproj
 dotnet test SalesApi.sln
 ```
 
-- **Unit** covers the domain's business rules (discount tiers, aggregate invariants, domain events), the Application layer's handlers (success paths, not-found, validation failures, and business-specific edge cases), and an AutoMapper configuration test that builds the real mapper (rather than a mock) to catch broken or incomplete profiles.
+- **Unit** covers the domain's business rules (discount tiers, aggregate invariants, domain events), the Application layer's handlers (success paths, not-found, and business-specific edge cases), the command/query validators and the `ValidationBehavior` that runs them, and an AutoMapper configuration test that builds the real mapper (rather than a mock) to catch broken or incomplete profiles.
 - **Integration** exercises `SaleRepository` against a real Postgres instance - specifically the EF Core Added-vs-Modified ambiguity around `SaleItem`'s client-generated key, which a mocked repository can never catch since it only ever manifested against a real database.
 - **Functional** boots the actual WebApi host (`WebApplicationFactory`) behind real Postgres and MongoDB instances and drives it through plain HTTP: the discount tiers, the quantity ceiling, the full cancel/update/add-item flows, list filtering/ordering/pagination, user updates, sale events landing in MongoDB, and the `{type, error, detail}` error shape for 400/401/404/409 - the same scenarios verified manually via curl during development, now automated.
 

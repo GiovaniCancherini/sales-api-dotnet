@@ -1,5 +1,4 @@
 using SalesApi.Domain.Repositories;
-using FluentValidation;
 using MediatR;
 
 namespace SalesApi.Application.Sales.CancelSaleItem;
@@ -18,14 +17,6 @@ public class CancelSaleItemHandler : IRequestHandler<CancelSaleItemCommand, Canc
 
     public async Task<CancelSaleItemResponse> Handle(CancelSaleItemCommand request, CancellationToken cancellationToken)
     {
-        var validator = new CancelSaleItemValidator();
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
-
         var sale = await _saleRepository.GetByIdAsync(request.SaleId, cancellationToken)
             ?? throw new KeyNotFoundException($"Sale with ID {request.SaleId} not found");
 
