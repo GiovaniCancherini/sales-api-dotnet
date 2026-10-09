@@ -7,6 +7,7 @@ A sales management API. It implements a complete CRUD for sales records, followi
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Business Rules](#business-rules)
+- [Caching](#caching)
 - [Getting Started](#getting-started)
 - [Authentication](#authentication)
 - [API Reference](#api-reference)
@@ -38,6 +39,7 @@ Key design decisions:
 - **.NET 8** / **C#**
 - **PostgreSQL** with **EF Core** for persistence
 - **MongoDB** for the sale events log
+- **Redis** (through `IDistributedCache`) as a cache for sale reads
 - **MediatR** for the command/query pipeline
 - **AutoMapper** for object-to-object mapping
 - **FluentValidation** for command/query validation, run in the MediatR pipeline
@@ -60,6 +62,22 @@ The core business rule, quantity-based discounting per product line:
 
 The discount is computed by `SaleItem` itself from its `Quantity` - it is never accepted as input from the API client, since that would let a caller bypass the rule entirely.
 
+## Caching
+
+`GET /api/Sales/{id}` uses the **cache-aside** pattern with Redis:
+
+1. The handler looks up `sale:{id}` in the cache. On a hit, it returns the cached result without touching PostgreSQL or AutoMapper.
+2. On a miss, it reads the sale from PostgreSQL, maps it, and stores the result with a 10-minute TTL.
+3. A sale that doesn't exist is not cached: a sale created right after would stay hidden until the TTL expired.
+
+Key design decisions:
+
+- **What is cached**: the `GetBySaleIdResult` read model, not the `Sale` aggregate. The aggregate has private constructors, protected collections and domain events, so it can't round-trip through JSON without bypassing its invariants; the read model is plain data, already in response shape.
+- **Invalidation after the commit**: every command that changes a sale (`UpdateSale`, `CancelSale`, `CancelSaleItem`, `AddSaleItem`, `DeleteSale`) removes the key right after saving. Removing it *before* the commit would let a concurrent read re-cache the old value from the database. The short window between commit and removal is accepted eventual consistency.
+- **TTL as a safety net**: since writes invalidate the key, the TTL only bounds how long a stale entry can survive if an invalidation is lost (for example, a network blip while removing the key).
+- **The cache is optional**: `ResilientDistributedCache` decorates the Redis `IDistributedCache`. If Redis is down, reads degrade to a miss (and fall back to PostgreSQL), writes to the cache are skipped, and a failed invalidation is logged as an error. Handlers don't know about Redis failures, and a Redis outage never fails a request. Connection timeouts are set to 1 second so an outage slows requests down instead of holding them for the default 5 seconds; a circuit breaker would be the next step to skip Redis entirely while it's down.
+- The list endpoint (`GET /api/Sales`, with filters and paging) is deliberately not cached: invalidating every page and filter combination a sale could appear in is far more complex than the gain.
+
 ## Getting Started
 
 ### Prerequisites
@@ -75,7 +93,7 @@ From the repository root:
 docker compose up -d --build
 ```
 
-This starts the API, PostgreSQL and MongoDB (both with health checks gating the API's startup) and a Redis container that ships with the template but isn't used by this implementation. **Database migrations are applied automatically** on application startup - no manual `dotnet ef database update` step is needed.
+This starts the API, PostgreSQL, MongoDB and Redis (all three with health checks gating the API's startup). **Database migrations are applied automatically** on application startup - no manual `dotnet ef database update` step is needed.
 
 The API container publishes ports 8080 (HTTP) and 8081 (HTTPS) to random host ports. Find the mapped port with:
 
@@ -91,9 +109,15 @@ To see the sale events stored in MongoDB (also reachable from MongoDB Compass at
 docker exec sales_api_nosql mongosh -u developer -p '***REMOVED***' --authenticationDatabase admin --quiet --eval "db.getSiblingDB('sales_api').sale_events.find().toArray()"
 ```
 
+To watch the cache at work, leave Redis's monitor running in a second terminal and call `GET /api/Sales/{id}` twice (a miss, then a hit), then change the sale (an invalidation):
+
+```bash
+docker exec -it sales_api_cache redis-cli -a '***REMOVED***' --no-auth-warning MONITOR
+```
+
 ### Running locally (without Docker)
 
-You'll need local PostgreSQL and MongoDB instances, with their connection strings (`DefaultConnection` and `MongoDb`) in `src/SalesApi.WebApi/appsettings.Development.json`, then:
+You'll need local PostgreSQL, MongoDB and Redis instances, with their connection strings (`DefaultConnection`, `MongoDb` and `Redis`) in `src/SalesApi.WebApi/appsettings.Development.json`, then:
 
 ```bash
 dotnet run --project src/SalesApi.WebApi
