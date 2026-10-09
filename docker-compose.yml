@@ -11,7 +11,7 @@ services:
       - ASPNETCORE_HTTPS_PORTS=8081
       - ConnectionStrings__DefaultConnection=Host=salesapi.database;Port=5432;Database=sales_api;Username=developer;Password=***REMOVED***
       - ConnectionStrings__MongoDb=mongodb://developer:***REMOVED***@salesapi.nosql:27017/?serverSelectionTimeoutMS=3000
-      - ConnectionStrings__Redis=salesapi.cache:6379,password=***REMOVED***,abortConnect=false
+      - ConnectionStrings__Redis=salesapi.cache:6379,password=***REMOVED***,abortConnect=false,connectTimeout=1000,syncTimeout=1000,asyncTimeout=1000
     ports:
       - "8080"
       - "8081"
