@@ -1,9 +1,10 @@
-using SalesApi.Application.Sales.CancelSale;
+﻿using SalesApi.Application.Sales.CancelSale;
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Enums;
 using SalesApi.Domain.Repositories;
 using SalesApi.Unit.Domain.Entities.TestData;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute;
 using Xunit;
 
@@ -15,12 +16,13 @@ namespace SalesApi.Unit.Application;
 public class CancelSaleHandlerTests
 {
     private readonly ISaleRepository _saleRepository;
+    private readonly IDistributedCache _cache = Substitute.For<IDistributedCache>();
     private readonly CancelSaleHandler _handler;
 
     public CancelSaleHandlerTests()
     {
         _saleRepository = Substitute.For<ISaleRepository>();
-        _handler = new CancelSaleHandler(_saleRepository);
+        _handler = new CancelSaleHandler(_saleRepository, _cache);
     }
 
     [Fact(DisplayName = "Given active sale When cancelling Then sale is cancelled and returns success")]

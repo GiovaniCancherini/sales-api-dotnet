@@ -1,9 +1,10 @@
-using SalesApi.Application.Sales.AddSaleItem;
+﻿using SalesApi.Application.Sales.AddSaleItem;
 using SalesApi.Application.Sales.CreateSale;
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using SalesApi.Unit.Domain.Entities.TestData;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute;
 using Xunit;
 
@@ -15,12 +16,13 @@ namespace SalesApi.Unit.Application;
 public class AddSaleItemHandlerTests
 {
     private readonly ISaleRepository _saleRepository;
+    private readonly IDistributedCache _cache = Substitute.For<IDistributedCache>();
     private readonly AddSaleItemHandler _handler;
 
     public AddSaleItemHandlerTests()
     {
         _saleRepository = Substitute.For<ISaleRepository>();
-        _handler = new AddSaleItemHandler(_saleRepository);
+        _handler = new AddSaleItemHandler(_saleRepository, _cache);
     }
 
     private static CreateSaleItemCommand ValidItem(int quantity = 2) => new()

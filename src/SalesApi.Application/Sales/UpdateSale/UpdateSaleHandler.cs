@@ -1,7 +1,8 @@
-using SalesApi.Domain.Entities;
+﻿using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using SalesApi.Domain.ValueObjects;
 using MediatR;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace SalesApi.Application.Sales.UpdateSale;
 
@@ -14,10 +15,12 @@ namespace SalesApi.Application.Sales.UpdateSale;
 public class UpdateSaleHandler : IRequestHandler<UpdateSaleCommand, UpdateSaleResponse>
 {
     private readonly ISaleRepository _saleRepository;
+    private readonly IDistributedCache _cache;
 
-    public UpdateSaleHandler(ISaleRepository saleRepository)
+    public UpdateSaleHandler(ISaleRepository saleRepository, IDistributedCache cache)
     {
         _saleRepository = saleRepository;
+        _cache = cache;
     }
 
     public async Task<UpdateSaleResponse> Handle(UpdateSaleCommand request, CancellationToken cancellationToken)
@@ -34,6 +37,8 @@ public class UpdateSaleHandler : IRequestHandler<UpdateSaleCommand, UpdateSaleRe
         sale.ReplaceItems(newItems);
 
         await _saleRepository.UpdateAsync(sale, cancellationToken);
+        // After the commit: invalidating before would let a concurrent read re-cache the old value.
+        await _cache.RemoveAsync(SaleCacheKeys.ById(request.Id), cancellationToken);
 
         return new UpdateSaleResponse { Success = true };
     }
