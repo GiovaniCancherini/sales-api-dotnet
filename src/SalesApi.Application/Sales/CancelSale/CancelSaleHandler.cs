@@ -1,5 +1,6 @@
-using SalesApi.Domain.Repositories;
+﻿using SalesApi.Domain.Repositories;
 using MediatR;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace SalesApi.Application.Sales.CancelSale;
 
@@ -9,10 +10,12 @@ namespace SalesApi.Application.Sales.CancelSale;
 public class CancelSaleHandler : IRequestHandler<CancelSaleCommand, CancelSaleResponse>
 {
     private readonly ISaleRepository _saleRepository;
+    private readonly IDistributedCache _cache;
 
-    public CancelSaleHandler(ISaleRepository saleRepository)
+    public CancelSaleHandler(ISaleRepository saleRepository, IDistributedCache cache)
     {
         _saleRepository = saleRepository;
+        _cache = cache;
     }
 
     public async Task<CancelSaleResponse> Handle(CancelSaleCommand request, CancellationToken cancellationToken)
@@ -23,6 +26,8 @@ public class CancelSaleHandler : IRequestHandler<CancelSaleCommand, CancelSaleRe
         sale.Cancel();
 
         await _saleRepository.UpdateAsync(sale, cancellationToken);
+        // After the commit: invalidating before would let a concurrent read re-cache the old value.
+        await _cache.RemoveAsync(SaleCacheKeys.ById(request.Id), cancellationToken);
 
         return new CancelSaleResponse { Success = true };
     }

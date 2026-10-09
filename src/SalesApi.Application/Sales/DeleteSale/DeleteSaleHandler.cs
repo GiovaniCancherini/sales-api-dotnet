@@ -1,4 +1,5 @@
-using MediatR;
+﻿using MediatR;
+using Microsoft.Extensions.Caching.Distributed;
 using SalesApi.Domain.Repositories;
 
 namespace SalesApi.Application.Sales.DeleteSale;
@@ -9,16 +10,19 @@ namespace SalesApi.Application.Sales.DeleteSale;
 public class DeleteSaleHandler : IRequestHandler<DeleteSaleCommand, DeleteSaleResponse>
 {
     private readonly ISaleRepository _saleRepository;
+    private readonly IDistributedCache _cache;
 
     /// <summary>
     /// Initializes a new instance of DeleteSaleHandler
     /// </summary>
     /// <param name="saleRepository">The sale repository</param>
-    /// <param name="validator">The validator for DeleteSaleCommand</param>
+    /// <param name="cache">The distributed cache, invalidated after the delete</param>
     public DeleteSaleHandler(
-        ISaleRepository saleRepository)
+        ISaleRepository saleRepository,
+        IDistributedCache cache)
     {
         _saleRepository = saleRepository;
+        _cache = cache;
     }
 
     /// <summary>
@@ -34,6 +38,8 @@ public class DeleteSaleHandler : IRequestHandler<DeleteSaleCommand, DeleteSaleRe
         {
             throw new KeyNotFoundException($"Sale with ID {request.Id} not found");
         }
+
+        await _cache.RemoveAsync(SaleCacheKeys.ById(request.Id), cancellationToken);
 
         return new DeleteSaleResponse { Success = true };
     }

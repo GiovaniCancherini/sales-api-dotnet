@@ -22,5 +22,13 @@ public class InfrastructureModuleInitializer : IModuleInitializer
             provider.GetRequiredService<IConfiguration>().GetConnectionString("MongoDb")
                 ?? throw new InvalidOperationException("ConnectionStrings:MongoDb is not configured.")));
         builder.Services.AddSingleton<ISaleEventStore, MongoSaleEventStore>();
+
+        // Exposes Redis as IDistributedCache, so handlers depend on the abstraction, not on Redis.
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = builder.Configuration.GetConnectionString("Redis")
+                ?? throw new InvalidOperationException("ConnectionStrings:Redis is not configured.");
+            options.InstanceName = "salesapi:";
+        });
     }
 }

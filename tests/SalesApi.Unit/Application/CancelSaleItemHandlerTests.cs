@@ -1,8 +1,10 @@
+﻿using SalesApi.Application.Sales;
 using SalesApi.Application.Sales.CancelSaleItem;
 using SalesApi.Domain.Entities;
 using SalesApi.Domain.Repositories;
 using SalesApi.Unit.Domain.Entities.TestData;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute;
 using Xunit;
 
@@ -14,12 +16,13 @@ namespace SalesApi.Unit.Application;
 public class CancelSaleItemHandlerTests
 {
     private readonly ISaleRepository _saleRepository;
+    private readonly IDistributedCache _cache = Substitute.For<IDistributedCache>();
     private readonly CancelSaleItemHandler _handler;
 
     public CancelSaleItemHandlerTests()
     {
         _saleRepository = Substitute.For<ISaleRepository>();
-        _handler = new CancelSaleItemHandler(_saleRepository);
+        _handler = new CancelSaleItemHandler(_saleRepository, _cache);
     }
 
     /// <summary>
@@ -50,6 +53,7 @@ public class CancelSaleItemHandlerTests
         result.Success.Should().BeTrue();
         cancelledItem.IsCancelled.Should().BeTrue();
         sale.TotalAmount.Should().Be(20m);
+        await _cache.Received(1).RemoveAsync(SaleCacheKeys.ById(sale.Id), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Given sale that does not exist When cancelling item Then throws KeyNotFoundException")]
@@ -64,6 +68,7 @@ public class CancelSaleItemHandlerTests
 
         // Then
         await act.Should().ThrowAsync<KeyNotFoundException>();
+        await _cache.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Given item that does not belong to the sale When cancelling Then throws InvalidOperationException")]
