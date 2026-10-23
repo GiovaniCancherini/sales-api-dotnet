@@ -1,3 +1,5 @@
+name: sales-api
+
 services:
   salesapi.webapi:
     container_name: sales_api_webapi

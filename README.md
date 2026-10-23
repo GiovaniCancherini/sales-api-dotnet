@@ -105,6 +105,8 @@ docker compose up -d --build
 
 This starts the API, PostgreSQL, MongoDB and Redis (all three with health checks gating the API's startup). **Database migrations are applied automatically** on application startup - no manual `dotnet ef database update` step is needed.
 
+Stop everything with `docker compose down -v`: PostgreSQL and MongoDB keep no data between runs, and `-v` removes their anonymous volumes so they don't pile up in Docker.
+
 The API container publishes ports 8080 (HTTP) and 8081 (HTTPS) to random host ports. Find the mapped port with:
 
 ```bash
