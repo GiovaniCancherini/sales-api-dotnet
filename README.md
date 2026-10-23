@@ -87,6 +87,16 @@ Key design decisions:
 
 ### Running with Docker
 
+The API container serves HTTPS with the ASP.NET Core development certificate, mounted from your machine. Visual Studio exports it automatically; from the command line, export it once before the first run (pick any password):
+
+```bash
+dotnet dev-certs https --trust
+dotnet dev-certs https -ep "$APPDATA/ASP.NET/Https/SalesApi.WebApi.pfx" -p <password>
+dotnet user-secrets set "Kestrel:Certificates:Development:Password" "<password>" --project src/SalesApi.WebApi
+```
+
+On Linux or macOS, use `~/.aspnet/https` instead of `$APPDATA/ASP.NET/Https`, and point the two certificate volumes in `docker-compose.yml` to `~/.microsoft/usersecrets` and `~/.aspnet/https`.
+
 From the repository root:
 
 ```bash
