@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
+using System.Security.Cryptography;
 using Testcontainers.MongoDb;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -23,7 +24,6 @@ public class ApiFixture : IAsyncLifetime
         .WithImage("postgres:13")
         .WithDatabase("sales_api_functional")
         .WithUsername("developer")
-        .WithPassword("***REMOVED***")
         .Build();
 
     private readonly MongoDbContainer _mongo = new MongoDbBuilder()
@@ -43,6 +43,9 @@ public class ApiFixture : IAsyncLifetime
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
+            builder.UseSetting("ConnectionStrings:Redis",
+                "localhost:6379,abortConnect=false,connectTimeout=1000,syncTimeout=1000,asyncTimeout=1000");
+            builder.UseSetting("Jwt:SecretKey", Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)));
             builder.ConfigureAppConfiguration((_, configBuilder) =>
             {
                 configBuilder.AddInMemoryCollection(new Dictionary<string, string?>

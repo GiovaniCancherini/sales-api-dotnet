@@ -17,14 +17,26 @@ namespace SalesApi.Common.Security
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
+        private const int MinimumSecretKeyBytes = 32;
+
         public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
             var secretKey = configuration["Jwt:SecretKey"]?.ToString();
-            ArgumentException.ThrowIfNullOrWhiteSpace(secretKey);
+            if (string.IsNullOrWhiteSpace(secretKey))
+            {
+                throw new InvalidOperationException(
+                    "Jwt:SecretKey is not configured. Set it through the Jwt__SecretKey environment variable (JWT_SECRET_KEY in .env).");
+            }
 
             var key = Encoding.ASCII.GetBytes(secretKey);
+
+            if (key.Length < MinimumSecretKeyBytes)
+            {
+                throw new InvalidOperationException(
+                    $"Jwt:SecretKey must be at least {MinimumSecretKeyBytes} bytes long.");
+            }
 
             services.AddAuthentication(x =>
             {
