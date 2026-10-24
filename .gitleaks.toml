@@ -1,0 +1,17 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "config-literal-password"
+description = "Literal password or secret key in a config file (use an environment variable instead)"
+path = '''(?i)(docker-compose[^/]*\.ya?ml|\.properties|appsettings[^/]*\.json|\.env)$'''
+regex = '''(?i)(?:password|passwd|pwd|secret_?key|requirepass)["']?(?:\s*[:=]\s*|\s+)["']?([^\s"'$<{*;,?][^\s"';,]{2,})'''
+secretGroup = 1
+keywords = ["password", "passwd", "pwd", "secret", "requirepass"]
+
+[[rules]]
+id = "url-credentials"
+description = "Password embedded in a connection URL"
+regex = '''[a-z][a-z0-9+.-]*://[^:/\s"'@]+:([^@/\s"'$<{*]+)@'''
+secretGroup = 1
+keywords = ["://"]
