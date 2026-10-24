@@ -16,6 +16,8 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
+
         try
         {
             Log.Information("Starting web application");
@@ -116,6 +118,7 @@ public class Program
         catch (Exception ex)
         {
             Log.Fatal(ex, "Application terminated unexpectedly");
+            Environment.ExitCode = 1;
         }
         finally
         {

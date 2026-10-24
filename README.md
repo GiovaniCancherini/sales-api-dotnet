@@ -87,6 +87,14 @@ Key design decisions:
 
 ### Running with Docker
 
+Secrets (database passwords and the JWT signing key) are never committed. They come from a `.env` file at the repository root, which git ignores. Create it from the template and fill every value:
+
+```bash
+cp .env.example .env
+```
+
+`.env.example` shows how to generate random values. Use letters and digits only (the Mongo password goes inside a URL), and at least 32 characters for `JWT_SECRET_KEY`: the API refuses to start with a shorter key. `docker compose` stops with a clear message if any variable is missing.
+
 The API container serves HTTPS with the ASP.NET Core development certificate, mounted from your machine. Visual Studio exports it automatically; from the command line, export it once before the first run (pick any password):
 
 ```bash
@@ -115,23 +123,31 @@ docker compose port salesapi.webapi 8081
 
 Then open `https://localhost:<mapped-port>/swagger` for the interactive API documentation.
 
-To see the sale events stored in MongoDB (also reachable from MongoDB Compass at `mongodb://developer:***REMOVED***@localhost:27017`):
+To see the sale events stored in MongoDB (also reachable from MongoDB Compass at `mongodb://developer:<MONGO_PASSWORD>@localhost:27017`, with the value from `.env`):
 
 ```bash
-docker exec sales_api_nosql mongosh -u developer -p '***REMOVED***' --authenticationDatabase admin --quiet --eval "db.getSiblingDB('sales_api').sale_events.find().toArray()"
+docker exec sales_api_nosql sh -c 'mongosh -u developer -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --quiet --eval "db.getSiblingDB(\"sales_api\").sale_events.find().toArray()"'
 ```
 
 To watch the cache at work, leave Redis's monitor running in a second terminal and call `GET /api/Sales/{id}` twice (a miss, then a hit), then change the sale (an invalidation):
 
 ```bash
-docker exec -it sales_api_cache redis-cli -a '***REMOVED***' --no-auth-warning MONITOR
+docker exec -it sales_api_cache sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning MONITOR'
 ```
 
 ### Running locally (without Docker)
 
-You'll need local PostgreSQL, MongoDB and Redis instances, with their connection strings (`DefaultConnection`, `MongoDb` and `Redis`) in `src/SalesApi.WebApi/appsettings.Development.json`, then:
+You'll need local PostgreSQL, MongoDB and Redis instances (the `docker compose` ones work: `docker compose up -d salesapi.database salesapi.nosql salesapi.cache`). Configuration comes from environment variables, never from `appsettings*.json`. In PowerShell, load `.env` into the session and point the connection strings at `localhost`:
 
-```bash
+```powershell
+Get-Content .env | Where-Object { $_ -match '^\w+=' } | ForEach-Object {
+    $name, $value = $_ -split '=', 2
+    Set-Item "env:$name" $value
+}
+$env:ConnectionStrings__DefaultConnection = "Host=localhost;Port=5432;Database=sales_api;Username=developer;Password=$env:POSTGRES_PASSWORD"
+$env:ConnectionStrings__MongoDb = "mongodb://developer:$env:MONGO_PASSWORD@localhost:27017/?serverSelectionTimeoutMS=3000"
+$env:ConnectionStrings__Redis = "localhost:6379,password=$env:REDIS_PASSWORD,abortConnect=false"
+$env:Jwt__SecretKey = $env:JWT_SECRET_KEY
 dotnet run --project src/SalesApi.WebApi
 ```
 

@@ -14,7 +14,6 @@ public class PostgreSqlFixture : IAsyncLifetime
         .WithImage("postgres:13")
         .WithDatabase("sales_api_test")
         .WithUsername("developer")
-        .WithPassword("***REMOVED***")
         .Build();
 
     public string ConnectionString => _container.GetConnectionString();
