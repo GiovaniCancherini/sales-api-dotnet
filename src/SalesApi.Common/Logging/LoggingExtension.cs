@@ -52,7 +52,6 @@ public static class LoggingExtension
     /// </remarks> 
     public static WebApplicationBuilder AddDefaultLogging(this WebApplicationBuilder builder)
     {
-        Log.Logger = new LoggerConfiguration().CreateLogger();
         builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
         {
             loggerConfiguration
