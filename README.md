@@ -12,6 +12,7 @@ A sales management API. It implements a complete CRUD for sales records, followi
 - [Authentication](#authentication)
 - [API Reference](#api-reference)
 - [Running Tests](#running-tests)
+- [Secret Scanning](#secret-scanning)
 - [Project Structure](#project-structure)
 
 ## Architecture
@@ -261,6 +262,16 @@ It installs the `coverlet.console` and `reportgenerator` global tools if missing
 dotnet test SalesApi.sln --collect:"XPlat Code Coverage" --settings coverlet.runsettings --results-directory ./TestResults
 reportgenerator -reports:"./TestResults/**/coverage.cobertura.xml" -targetdir:"./TestResults/CoverageReport" -reporttypes:Html
 ```
+
+## Secret Scanning
+
+Every commit is checked for secrets by [gitleaks](https://github.com/gitleaks/gitleaks), through a versioned pre-commit hook. Besides gitleaks' default rules, [`.gitleaks.toml`](.gitleaks.toml) flags literal passwords in config files (`docker-compose*.yml`, `appsettings*.json`, `.env`) and credentials embedded in connection URLs. Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+A commit with a secret is refused, showing the file and line. To scan the whole history: `gitleaks git --log-opts="--all"`.
 
 ## Project Structure
 
