@@ -47,11 +47,11 @@ services:
       retries: 10
 
   salesapi.nosql:
-    container_name: sales_api_nosql 
-    image: mongo:8.0    
+    container_name: sales_api_nosql
+    image: mongo:8.0
     environment:
-        MONGO_INITDB_ROOT_USERNAME: developer
-        MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?Set MONGO_PASSWORD in .env (see .env.example)}
+      MONGO_INITDB_ROOT_USERNAME: developer
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?Set MONGO_PASSWORD in .env (see .env.example)}
     ports:
       - "27017:27017"
     healthcheck:
@@ -61,8 +61,8 @@ services:
       retries: 10
 
   salesapi.cache:
-    container_name: sales_api_cache 
-    image: redis:7.4.1-alpine     
+    container_name: sales_api_cache
+    image: redis:7.4.1-alpine
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env (see .env.example)}
     command: ["sh", "-c", "redis-server --requirepass \"$$REDIS_PASSWORD\""]
